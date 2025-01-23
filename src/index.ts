@@ -1,8 +1,23 @@
-console.log("Hello world!");
-// console.log(process.env.DB_HOST);
-const testAdd = (first: number, second: number): number => {
-  const sum = first + second;
-  return sum;
-};
+// import libs
+import express from "express";
+import dotenv from "dotenv";
 
-testAdd(50, 43);
+// init env
+dotenv.config();
+
+// import files, routes
+import userRoutes from "./routes/user.route";
+
+// init app and port
+const app = express();
+const port = 3000;
+
+// init methods and routes
+// app.use(cors());
+app.use(express.json());
+app.use("/users", userRoutes);
+
+// init server
+app.listen(port, () => {
+  console.log(`Server is running at http://localhost:${port}`);
+});

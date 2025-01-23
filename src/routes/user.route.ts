@@ -1,0 +1,20 @@
+import express from "express";
+
+import {
+  checkEmail,
+  getUsers,
+  register,
+  deleteUser,
+} from "../controllers/user.controller";
+// import { register, login, verifyEmail } from "../controllers/user.controller";
+
+const router = express.Router();
+
+router.get("/checkEmail", checkEmail);
+router.get("/getUsers", getUsers);
+router.post("/register", register);
+router.delete("/deleteUser", deleteUser);
+// router.post("/login", login);
+// router.post("/verifyEmail", verifyEmail);
+
+export default router;
