@@ -6,7 +6,7 @@ interface User {
   password: string;
   verified: boolean;
   verificationToken: string | null;
-  verificationExpire: string | null;
+  verificationExpire: number | null;
   forgotPasswordFlag: boolean;
   forgotPasswordToken: string | null;
   forgotPasswordExpire: string | null;
@@ -17,7 +17,7 @@ interface NewUser {
   email: string;
   password: string;
   verificationToken: string | null;
-  verificationExpire: string | null;
+  verificationExpire: number | null;
 }
 
 interface EmailOptions {

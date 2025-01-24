@@ -5,6 +5,7 @@ import {
   getUsers,
   register,
   deleteUser,
+  verifyEmail,
 } from "../controllers/user.controller";
 // import { register, login, verifyEmail } from "../controllers/user.controller";
 
@@ -15,6 +16,6 @@ router.get("/getUsers", getUsers);
 router.post("/register", register);
 router.delete("/deleteUser", deleteUser);
 // router.post("/login", login);
-// router.post("/verifyEmail", verifyEmail);
+router.get("/verifyEmail", verifyEmail);
 
 export default router;

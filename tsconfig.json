@@ -22,6 +22,8 @@
     "verbatimModuleSyntax": true,
 
     // for type-checking
-    "noEmit": false
+    "noEmit": false,
+
+    "outDir": "./dist"
   }
 }

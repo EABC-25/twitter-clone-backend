@@ -17,7 +17,7 @@ export const sendEmail = async (
 ): Promise<boolean> => {
   const verifyEmailURL = `${req.protocol}://${req.get(
     "host"
-  )}/users/verifyEmail?token=${token}`;
+  )}/users/verifyEmail?email=${email}&token=${token}`;
 
   const message = {
     from: `${process.env.FROM_NAME} <${process.env.FROM_EMAIL}>`,

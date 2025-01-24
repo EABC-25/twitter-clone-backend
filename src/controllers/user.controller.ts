@@ -1,4 +1,5 @@
 import { type Request, type Response, type NextFunction } from "express";
+import validator from "validator";
 import {
   type User,
   type NewUser,
@@ -10,9 +11,11 @@ import {
   generateHashedToken,
   sendEmail,
   getUsersFromDb,
+  getUserFromDbUsingEmail,
   checkEmailFromDb,
   addUserToDb,
   deleteUserFromDb,
+  verifyUserInDb,
 } from "../utils";
 
 export const getUsers = async (_, res: Response) => {
@@ -29,8 +32,10 @@ export const checkEmail = async (_, res: Response) => {
   try {
     // testing
     const results = await checkEmailFromDb("test@test.com");
-    // console.log(results[0].createdAt instanceof Date);
-    res.status(200).json(results);
+
+    if (results.length <= 0) throw new CustomError("DB: Email not found!", 404);
+
+    res.status(200).json({ message: "Email found." });
   } catch (err) {
     handleError(err, res);
   }
@@ -41,9 +46,12 @@ export const register = async (req: Request, res: Response) => {
     const { username, email, password } = req.body;
 
     // we need to create regex here to check email
+    if (!validator.isEmail(email)) {
+      throw new CustomError("User: Invalid email!", 401);
+    }
 
-    const searchResult = await checkEmailFromDb(email);
-    if (searchResult) {
+    const results = await checkEmailFromDb(email);
+    if (results.length > 0) {
       throw new CustomError("DB: User already exists!", 400);
     }
 
@@ -54,7 +62,7 @@ export const register = async (req: Request, res: Response) => {
       email: email as string,
       password: hashedPassword,
       verificationToken: hashedToken,
-      verificationExpire: expiration.toString(),
+      verificationExpire: expiration,
     };
 
     if (!(await addUserToDb(newUser))) {
@@ -81,84 +89,67 @@ export const deleteUser = async (req: Request, res: Response) => {
   try {
     // we need to pass cookie token here, but for now email will suffice..
     const { email } = req.body;
-    const results = await deleteUserFromDb(email);
-    if (results.affectedRows > 0) {
-      res.status(200).json({
-        message: "Successfully deleted User!",
-      });
-    } else {
+    if (!(await deleteUserFromDb(email))) {
       throw new CustomError("DB: User not found!", 404);
     }
+
+    res.status(200).json({
+      message: "Successfully deleted User!",
+    });
   } catch (err) {
     handleError(err, res);
   }
 };
 
-// export const verifyEmail = async (req: Request, res: Response) => {
-//   try {
-//     const { token } = req.query;
+export const verifyEmail = async (req: Request, res: Response) => {
+  try {
+    const { token, email } = req.query;
 
-//     if (!token) {
-//       throw new CustomError("User: token does not exist!", 400);
-//     }
+    if (!token) {
+      throw new CustomError("User: token does not exist!", 400);
+    }
 
-//     const splitToken = String(token).split(".")[0];
-//     const hashedToken = generateHashedToken(splitToken);
-//     console.log(hashedToken);
-//     const user = await emailVerification(hashedToken);
+    if (!validator.isEmail(email as string)) {
+      throw new CustomError("User: Invalid email!", 401);
+    }
 
-//     if (verified.result) {
-//       const newUser = {
-//         ...verified.user,
-//         verified: true,
-//         verificationToken: "",
-//         verificationExpire: null,
-//       };
+    const splitToken = String(token).split(".")[0];
+    const hashedToken = generateHashedToken(splitToken);
 
-//       if (
-//         !(await writeJsonFileAsync(
-//           mockDbPath,
-//           newUser.userId.toString(),
-//           newUser
-//         ))
-//       ) {
-//         throw new CustomError("DB: User update failed!", 500);
-//       }
+    // what if some bad actor spam sends this request to overload the db? verified check block below will block exec but it does not stop the bad actor from spamming this end point
+    const results = await getUserFromDbUsingEmail(
+      `SELECT email, verified, verificationToken, verificationExpire FROM users WHERE email = ?`,
+      email as string
+    );
+    if (results.length <= 0) throw new CustomError("DB: User not found!", 404);
 
-//       res.status(200).json({
-//         message: "Account verification success!",
-//       });
-//     } else if (!verified.result) {
-//       const { token, hashedToken, expiration } = generateVerificationToken();
-//       const newUser = {
-//         ...verified.user,
-//         verificationToken: hashedToken,
-//         verificationExpire: expiration,
-//       };
+    const processed = results.map(row => ({
+      ...row,
+      verified: row.verified ? row.verified[0] === 1 : false,
+    }));
+    if (processed[0].verified)
+      throw new CustomError("User: User is already verified!", 400);
 
-//       if (
-//         !(await writeJsonFileAsync(
-//           mockDbPath,
-//           newUser.userId.toString(),
-//           newUser
-//         ))
-//       ) {
-//         throw new CustomError("DB: User update failed!", 500);
-//       }
+    const userToken = processed[0].verificationToken;
+    const userTokenExp = processed[0].verificationExpire;
 
-//       if (!(await sendEmail(req, token, newUser.email))) {
-//         throw new CustomError("Email: Email sending failed!", 500);
-//       }
+    if (userToken === hashedToken && Date.now() < userTokenExp) {
+      if (!(await verifyUserInDb(email as string)))
+        throw new CustomError("Db: Failed to update user!", 500);
 
-//       res.status(200).json({
-//         message:
-//           "Account verification failed, but we sent you another email for verification.",
-//       });
-//     }
-//   } catch (err) {
-//     handleError(err, res);
-//   }
-// };
+      return res.status(200).json({
+        message: "Successfully verified user!",
+      });
+    }
+
+    throw new CustomError(
+      "Db: Failed to update user, Please check your credentials!",
+      401
+    );
+  } catch (err) {
+    handleError(err, res);
+  }
+};
 
 // export const login = async (req: Request, res: Response) => {
 //   try {
