@@ -121,23 +121,27 @@ export const verifyEmail = async (req: Request, res: Response) => {
       `SELECT email, verified, verificationToken, verificationExpire FROM users WHERE email = ?`,
       email as string
     );
-    if (results.length <= 0) throw new CustomError("DB: User not found!", 404);
+    if (results.length <= 0) {
+      throw new CustomError("DB: User not found!", 404);
+    }
 
     const processed = results.map(row => ({
       ...row,
       verified: row.verified ? row.verified[0] === 1 : false,
     }));
-    if (processed[0].verified)
+    if (processed[0].verified) {
       throw new CustomError("User: User is already verified!", 400);
+    }
 
     const userToken = processed[0].verificationToken;
     const userTokenExp = processed[0].verificationExpire;
 
     if (userToken === hashedToken && Date.now() < userTokenExp) {
-      if (!(await verifyUserInDb(email as string)))
+      if (!(await verifyUserInDb(email as string))) {
         throw new CustomError("Db: Failed to update user!", 500);
+      }
 
-      return res.status(200).json({
+      res.status(200).json({
         message: "Successfully verified user!",
       });
     }
@@ -185,38 +189,3 @@ export const verifyEmail = async (req: Request, res: Response) => {
 export const logout = async (req: Request, res: Response) => {};
 
 export const forgotPassword = async (req: Request, res: Response) => {};
-
-// HELPER FUNCTIONS
-
-// const emailVerification = async (
-//   token: string
-// ): Promise<{ result: boolean; user: User }> => {
-//   const data = await readJsonFileAsync(mockDbPath);
-//   if (!data) {
-//     throw new CustomError("Fetch data failed!", 500);
-//   }
-
-//   const user = Object.values(data).find(
-//     user => user.verificationToken === token
-//   );
-//   const dateNow = Date.now();
-//   if (!user) {
-//     throw new CustomError("User does not exist!", 404);
-//   }
-
-//   if (
-//     !user.verified &&
-//     user.verificationExpire &&
-//     user.verificationExpire > dateNow
-//   ) {
-//     return { result: true, user: user };
-//   } else if (
-//     !user.verified &&
-//     user.verificationExpire &&
-//     user.verificationExpire <= dateNow
-//   ) {
-//     return { result: false, user: user };
-//   }
-
-//   throw new CustomError("User is already verified!", 400);
-// };
