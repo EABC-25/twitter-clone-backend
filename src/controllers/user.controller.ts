@@ -155,36 +155,19 @@ export const verifyEmail = async (req: Request, res: Response) => {
   }
 };
 
-// export const login = async (req: Request, res: Response) => {
-//   try {
-//     const { username, email, password } = req.body;
-
-//     const searchResult = await checkMockDbForUser("email", email);
-//     if (searchResult === false) {
-//       throw new CustomError("DB: User doesn't exist!", 404);
-//     }
-
-//     const user = await getUserFromMockDb(email);
-
-//     if (user && !user.verified) {
-//       throw new CustomError("User: user email verification pending!", 403);
-//     }
-
-//     if (user && (await comparePassword(password, user.password))) {
-//       res.status(200).json({
-//         message: `Welcome, ${username}!`,
-//       });
-//       // redirect to main page
-//     } else {
-//       throw new CustomError(
-//         "User: Unable to login, please check credentials.",
-//         401
-//       );
-//     }
-//   } catch (err) {
-//     handleError(err, res);
-//   }
-// };
+export const login = async (req: Request, res: Response) => {
+  try {
+    const { email, password } = req.body;
+    console.log(email);
+    console.log(password);
+    res.status(200).json({
+      email,
+      password,
+    });
+  } catch (err) {
+    handleError(err, res);
+  }
+};
 
 export const logout = async (req: Request, res: Response) => {};
 

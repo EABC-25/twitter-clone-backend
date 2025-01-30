@@ -6,6 +6,7 @@ import {
   register,
   deleteUser,
   verifyEmail,
+  login,
 } from "../controllers/user.controller";
 
 const router = express.Router();
@@ -15,6 +16,6 @@ router.get("/getUsers", getUsers);
 router.post("/register", register);
 router.delete("/deleteUser", deleteUser);
 router.post("/verifyEmail", verifyEmail);
-// router.post("/login", login);
+router.post("/login", login);
 
 export default router;
