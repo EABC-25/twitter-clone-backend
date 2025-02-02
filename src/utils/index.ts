@@ -1,22 +1,28 @@
-import { type User, type NewUser, type EmailOptions } from "./types/types";
+import {
+  type User,
+  type NewUser,
+  type EmailOptions,
+  type JWTOptions,
+} from "./types/types";
 import { CustomError } from "./error/CustomError";
 import { handleError } from "./error/errorHandler";
 import { comparePassword, hashPassword, generateJWToken } from "./encryption";
 import { generateVerificationToken, generateHashedToken } from "./encryption";
 import {
   getUsersFromDb,
-  getUserFromDbUsingEmail,
-  checkEmailFromDb,
+  getUserWithEmailAndQuery,
+  checkUserWithEmail,
   addUserToDb,
   deleteUserFromDb,
   verifyUserInDb,
-} from "./db/users";
+} from "./db/user.db";
 import { sendEmail } from "./email/email";
 
 export {
   type User,
   type NewUser,
   type EmailOptions,
+  type JWTOptions,
   CustomError,
   handleError,
   comparePassword,
@@ -26,8 +32,8 @@ export {
   generateHashedToken,
   sendEmail,
   getUsersFromDb,
-  getUserFromDbUsingEmail,
-  checkEmailFromDb,
+  getUserWithEmailAndQuery,
+  checkUserWithEmail,
   addUserToDb,
   deleteUserFromDb,
   verifyUserInDb,

@@ -18,8 +18,8 @@ export const comparePassword = async (
 };
 
 export const generateJWToken = (userId: string): string => {
-  const token = jwt.sign({ userId }, "your_jwt_secret", {
-    expiresIn: "1h", // Token expires in 1 hour
+  const token = jwt.sign({ userId }, process.env.JWT_SECRET, {
+    expiresIn: process.env.JWT_EXPIRE, // Token expires in 7 days
   });
   return token;
 };

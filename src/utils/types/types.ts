@@ -26,6 +26,12 @@ interface EmailOptions {
   message: string;
 }
 
+interface JWTOptions {
+  httpOnly: boolean;
+  expires: Date;
+  secure: boolean | null;
+}
+
 const MESSAGE = {
   SUCCESS: "SUCCESS",
   DB_ERROR: "FAILED_DB",
@@ -33,4 +39,4 @@ const MESSAGE = {
   // TO BE CONTINUED
 };
 
-export { type User, type NewUser, type EmailOptions };
+export { type User, type NewUser, type EmailOptions, type JWTOptions };

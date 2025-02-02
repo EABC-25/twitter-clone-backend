@@ -8,14 +8,14 @@ export const getUsersFromDb = async (): Promise<User[]> => {
   return rows[0] as User[];
 };
 
-export const checkEmailFromDb = async (email: string): Promise<User[]> => {
+export const checkUserWithEmail = async (email: string): Promise<User[]> => {
   const rows = await db.executeRows(`SELECT email FROM users WHERE email = ?`, [
     email,
   ]);
   return rows[0] as User[];
 };
 
-export const getUserFromDbUsingEmail = async (
+export const getUserWithEmailAndQuery = async (
   query: string,
   email: string
 ): Promise<User[]> => {

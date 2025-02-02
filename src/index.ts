@@ -2,6 +2,7 @@
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 
 // init env
 dotenv.config();
@@ -23,6 +24,7 @@ const corsOptions = {
 // init methods and routes
 app.use(cors(corsOptions));
 app.use(express.json());
+app.use(cookieParser());
 app.use("/users", userRoutes);
 
 // init server

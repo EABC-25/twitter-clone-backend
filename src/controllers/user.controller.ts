@@ -3,6 +3,7 @@ import validator from "validator";
 import {
   type User,
   type NewUser,
+  type JWTOptions,
   CustomError,
   handleError,
   comparePassword,
@@ -11,11 +12,12 @@ import {
   generateHashedToken,
   sendEmail,
   getUsersFromDb,
-  getUserFromDbUsingEmail,
-  checkEmailFromDb,
+  getUserWithEmailAndQuery,
+  checkUserWithEmail,
   addUserToDb,
   deleteUserFromDb,
   verifyUserInDb,
+  generateJWToken,
 } from "../utils";
 
 export const getUsers = async (_, res: Response) => {
@@ -31,7 +33,7 @@ export const getUsers = async (_, res: Response) => {
 export const checkEmail = async (_, res: Response) => {
   try {
     // testing
-    const results = await checkEmailFromDb("test@test.com");
+    const results = await checkUserWithEmail("test@test.com");
 
     if (results.length <= 0) throw new CustomError("DB: Email not found!", 404);
 
@@ -50,7 +52,7 @@ export const register = async (req: Request, res: Response) => {
       throw new CustomError("User: Invalid email!", 401);
     }
 
-    const results = await checkEmailFromDb(email);
+    const results = await checkUserWithEmail(email);
     if (results.length > 0) {
       throw new CustomError("DB: User already exists!", 400);
     }
@@ -117,7 +119,7 @@ export const verifyEmail = async (req: Request, res: Response) => {
     const hashedToken = generateHashedToken(splitToken);
 
     // what if some bad actor spam sends this request to overload the db? verified check block below will block exec but it does not stop the bad actor from spamming this end point
-    const results = await getUserFromDbUsingEmail(
+    const results = await getUserWithEmailAndQuery(
       `SELECT email, verified, verificationToken, verificationExpire FROM users WHERE email = ?`,
       email as string
     );
@@ -158,11 +160,49 @@ export const verifyEmail = async (req: Request, res: Response) => {
 export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
-    console.log(email);
-    console.log(password);
+
+    if (!validator.isEmail(email as string)) {
+      throw new CustomError("User: User unauthorized!", 401);
+    }
+
+    const results = await getUserWithEmailAndQuery(
+      `SELECT userId, email, password, verified FROM users WHERE email = ?`,
+      email as string
+    );
+
+    if (results.length <= 0) {
+      throw new CustomError("DB: User not found!", 404);
+    }
+
+    const processed = results.map(row => ({
+      ...row,
+      verified: row.verified ? row.verified[0] === 1 : false,
+    }));
+    if (!processed[0].verified) {
+      throw new CustomError("User: User is not yet verified!", 403);
+    }
+
+    const isMatching = await comparePassword(password, processed[0].password);
+
+    if (!isMatching) {
+      throw new CustomError("User: User unauthorized!", 401);
+    }
+
+    console.log(processed);
+
+    const jwToken = generateJWToken(processed[0].userId);
+    console.log(jwToken);
+
+    const expire = +process.env.JWT_COOKIE_EXPIRE;
+    const options: JWTOptions = {
+      httpOnly: true,
+      expires: new Date(Date.now() + expire * 1000),
+      secure: process.env.NODE_ENV === "production",
+    };
+
+    res.cookie("token", jwToken, options);
     res.status(200).json({
-      email,
-      password,
+      message: "routing to home page..",
     });
   } catch (err) {
     handleError(err, res);
