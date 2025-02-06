@@ -26,9 +26,10 @@ interface EmailOptions {
   message: string;
 }
 
-interface JWTOptions {
+interface CookieOptions {
   httpOnly: boolean;
   expires: Date;
+  sameSite?: "lax" | "strict" | "none";
   secure: boolean | null;
 }
 
@@ -39,4 +40,4 @@ const MESSAGE = {
   // TO BE CONTINUED
 };
 
-export { type User, type NewUser, type EmailOptions, type JWTOptions };
+export { type User, type NewUser, type EmailOptions, type CookieOptions };
