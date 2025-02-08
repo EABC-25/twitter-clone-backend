@@ -15,16 +15,14 @@ export const checkUserWithEmail = async (email: string): Promise<User[]> => {
   return rows[0] as User[];
 };
 
-export const getUserWithEmailAndQuery = async (
+// method for getting the user from db
+// param1: custom query
+// param2: (indexed) email or userId
+export const getUserFromDb = async (
   query: string,
-  email: string
+  index: string
 ): Promise<User[]> => {
-  const rows = await db.executeRows(query, [email]);
-
-  // I might need to find a way to pass the email from verify email so that I don't need to use the verification token in the above query (which I find very insecure? or unreliable because of possible collisions?)
-
-  // I think I'll just pass the email thru sendEmail's url and then access that via req.query
-  // also, I might need to index email in db for fast retrieval right?
+  const rows = await db.executeRows(query, [index]);
 
   return rows[0] as User[];
 };

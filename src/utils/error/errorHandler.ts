@@ -13,6 +13,7 @@ export const handleError = (err: unknown, res: Response) => {
   console.error("Error: ", err);
 
   res.status(errCode).json({
+    success: false,
     error: errCode,
     message: errMessage,
   });

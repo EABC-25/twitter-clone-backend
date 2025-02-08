@@ -9,12 +9,11 @@ import {
   handleError,
   comparePassword,
   hashPassword,
-  verifyJWTToken,
   generateVerificationToken,
   generateHashedToken,
   sendEmail,
   getUsersFromDb,
-  getUserWithEmailAndQuery,
+  getUserFromDb,
   checkUserWithEmail,
   addUserToDb,
   deleteUserFromDb,
@@ -24,29 +23,9 @@ import {
 
 export const checkToken = async (req: Request, res: Response) => {
   try {
-    let token: string;
-    // console.log(req.headers);
-    // console.log(req.cookies);
-    if (req.cookies.token) {
-      token = req.cookies.token;
-    }
-
-    if (!token) {
-      throw new CustomError("Not authorized to access this route", 401);
-    }
-
-    const decoded = verifyJWTToken(token);
-
-    // decoded.iat and decoded.exp is in seconds therefore we need to multiply by 1000
-    const jwtExpired = Date.now() > decoded.exp * 1000 ? true : false;
-
-    if (!decoded || !decoded.userId || jwtExpired) {
-      throw new CustomError("Not authorized to access this route", 401);
-    }
-
-    // we need to make sql query to check for the userId in the db
-
-    res.status(200).json({ message: "success." });
+    // testing
+    console.log(req.body);
+    res.status(200).json({ success: true });
   } catch (err) {
     handleError(err, res);
   }
@@ -101,8 +80,7 @@ export const register = async (req: Request, res: Response) => {
     }
 
     res.status(201).json({
-      message:
-        "Account registration success, please check your email for the verification code.",
+      success: true,
     });
   } catch (err) {
     handleError(err, res);
@@ -125,7 +103,7 @@ export const verifyEmail = async (req: Request, res: Response) => {
     const hashedToken = generateHashedToken(splitToken);
 
     // what if some bad actor spam sends this request to overload the db? verified check block below will block exec but it does not stop the bad actor from spamming this end point
-    const results = await getUserWithEmailAndQuery(
+    const results = await getUserFromDb(
       `SELECT email, verified, verificationToken, verificationExpire FROM users WHERE email = ?`,
       email as string
     );
@@ -150,7 +128,7 @@ export const verifyEmail = async (req: Request, res: Response) => {
       }
 
       res.status(200).json({
-        message: "Successfully verified user!",
+        success: true,
       });
     }
 
@@ -172,7 +150,7 @@ export const login = async (req: Request, res: Response) => {
       throw new CustomError("User: email is not a valid email!", 400);
     }
 
-    const results = await getUserWithEmailAndQuery(
+    const results = await getUserFromDb(
       `SELECT userId, email, password, verified FROM users WHERE email = ?`,
       email as string
     );
@@ -215,10 +193,11 @@ const sendTokenizedResponse = async (
   res: Response,
   action?: string
 ) => {
-  const expire = +process.env.JWT_COOKIE_EXPIRE;
   const options: CookieOptions = {
     httpOnly: true,
-    expires: new Date(Date.now() + expire * 1000 * 60), // 60 minutes test
+    expires: new Date(
+      Date.now() + parseInt(process.env.JWT_COOKIE_EXPIRE) * 60 * 1000 * 60 * 24
+    ), // 24 hours / 1 day
     sameSite: "strict",
     secure: process.env.NODE_ENV === "production",
   };
@@ -228,7 +207,7 @@ const sendTokenizedResponse = async (
 
     res.cookie("token", "none", options);
     res.status(statusCode).json({
-      success: "true",
+      success: true,
     });
   }
 
@@ -237,6 +216,6 @@ const sendTokenizedResponse = async (
 
   res.cookie("token", jwToken, options);
   res.status(statusCode).json({
-    success: "true",
+    success: true,
   });
 };

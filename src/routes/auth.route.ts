@@ -7,10 +7,11 @@ import {
   verifyEmail,
   login,
 } from "../controllers/auth.controller";
+import { protect } from "../middlewares/auth/auth";
 
 const router = express.Router();
 
-router.get("/checkToken", checkToken);
+router.get("/checkToken", protect, checkToken);
 router.get("/checkEmail", checkEmail);
 router.post("/register", register);
 router.post("/verifyEmail", verifyEmail);

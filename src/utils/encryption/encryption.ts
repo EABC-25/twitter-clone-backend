@@ -17,10 +17,6 @@ export const comparePassword = async (
   return isMatch;
 };
 
-export const verifyJWTToken = (token: string): jwt.JwtPayload => {
-  return jwt.verify(token, process.env.JWT_SECRET);
-};
-
 export const generateJWToken = (userId: string): string => {
   const token = jwt.sign({ userId }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRE, // Token expires in 7 days

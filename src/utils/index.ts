@@ -9,19 +9,18 @@ import { handleError } from "./error/errorHandler";
 import {
   comparePassword,
   hashPassword,
-  verifyJWTToken,
   generateJWToken,
   generateVerificationToken,
   generateHashedToken,
 } from "./encryption/encryption";
 import {
   getUsersFromDb,
-  getUserWithEmailAndQuery,
+  getUserFromDb,
   checkUserWithEmail,
   addUserToDb,
   deleteUserFromDb,
   verifyUserInDb,
-} from "./db/user.db";
+} from "./db/query";
 import { sendEmail } from "./email/email";
 
 export {
@@ -33,13 +32,12 @@ export {
   handleError,
   comparePassword,
   hashPassword,
-  verifyJWTToken,
   generateJWToken,
   generateVerificationToken,
   generateHashedToken,
   sendEmail,
   getUsersFromDb,
-  getUserWithEmailAndQuery,
+  getUserFromDb,
   checkUserWithEmail,
   addUserToDb,
   deleteUserFromDb,
