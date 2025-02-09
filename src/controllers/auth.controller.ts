@@ -24,7 +24,6 @@ import {
 export const checkToken = async (req: Request, res: Response) => {
   try {
     // testing
-    console.log(req.body);
     res.status(200).json({ success: true });
   } catch (err) {
     handleError(err, res);
@@ -197,7 +196,7 @@ const sendTokenizedResponse = async (
     httpOnly: true,
     expires: new Date(
       Date.now() + parseInt(process.env.JWT_COOKIE_EXPIRE) * 60 * 1000 * 60 * 24
-    ), // 24 hours / 1 day
+    ), // 24 hours - 1 day
     sameSite: "strict",
     secure: process.env.NODE_ENV === "production",
   };

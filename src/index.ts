@@ -10,6 +10,7 @@ dotenv.config();
 // import files, routes
 import authRoutes from "./routes/auth.route";
 import userRoutes from "./routes/user.route";
+import postRoutes from "./routes/post.route";
 
 // init app and port
 const app = express();
@@ -28,6 +29,7 @@ app.use(express.json());
 app.use(cookieParser());
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/user", userRoutes);
+app.use("/api/v1/post", postRoutes);
 
 // init server
 app.listen(port, () => {

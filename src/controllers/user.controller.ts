@@ -12,7 +12,7 @@ import {
   generateHashedToken,
   sendEmail,
   getUsersFromDb,
-  getUserWithEmailAndQuery,
+  getUserFromDb,
   checkUserWithEmail,
   addUserToDb,
   deleteUserFromDb,
@@ -25,6 +25,15 @@ export const getUsers = async (_, res: Response) => {
     const results = await getUsersFromDb();
     // console.log(results[0].createdAt instanceof Date);
     res.status(200).json({ data: results });
+  } catch (err) {
+    handleError(err, res);
+  }
+};
+
+export const getUser = async (req: Request, res: Response) => {
+  try {
+    const user = req.body.user[0];
+    res.status(200).json({ user });
   } catch (err) {
     handleError(err, res);
   }
