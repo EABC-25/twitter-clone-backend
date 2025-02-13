@@ -22,6 +22,8 @@ import {
   verifyUserInDb,
 } from "./db/query";
 import { sendEmail } from "./email/email";
+import cloudinaryConfig from "./config/cloudinary.config";
+import signUploadForm from "./modules/cloudinary.upload";
 
 export {
   type User,
@@ -42,4 +44,6 @@ export {
   addUserToDb,
   deleteUserFromDb,
   verifyUserInDb,
+  cloudinaryConfig,
+  signUploadForm,
 };

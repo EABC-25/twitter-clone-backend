@@ -33,6 +33,7 @@ export const getUsers = async (_, res: Response) => {
 export const getUser = async (req: Request, res: Response) => {
   try {
     const user = req.body.user[0];
+    // console.log(user);
     res.status(200).json({ user });
   } catch (err) {
     handleError(err, res);

@@ -143,14 +143,13 @@ export const verifyEmail = async (req: Request, res: Response) => {
 export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
-    console.log(req.headers);
 
     if (!validator.isEmail(email as string)) {
       throw new CustomError("User: email is not a valid email!", 400);
     }
 
     const results = await getUserFromDb(
-      `SELECT userId, email, password, verified FROM users WHERE email = ?`,
+      `SELECT userId, email, password, verified, createdAt FROM users WHERE email = ?`,
       email as string
     );
 
@@ -169,10 +168,8 @@ export const login = async (req: Request, res: Response) => {
     const isMatching = await comparePassword(password, processed[0].password);
 
     if (!isMatching) {
-      throw new CustomError("User: Invalid Password!", 403);
+      throw new CustomError("User: Invalid Password!", 401);
     }
-
-    console.log(processed);
 
     sendTokenizedResponse(processed, 200, res);
   } catch (err) {
@@ -209,12 +206,16 @@ const sendTokenizedResponse = async (
       success: true,
     });
   }
+  console.log(data);
 
   const jwToken = generateJWToken(data[0].userId);
-  console.log(jwToken);
+  const user = {
+    email: data[0].email,
+    createdAt: data[0].createdAt,
+  };
 
   res.cookie("token", jwToken, options);
   res.status(statusCode).json({
-    success: true,
+    user: user,
   });
 };
