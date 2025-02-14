@@ -50,3 +50,13 @@ export const getPosts = async (req: Request, res: Response) => {
     handleError(err, res);
   }
 };
+
+export const addPost = async (req: Request, res: Response) => {
+  try {
+    console.log(req.body);
+
+    res.status(201).json({ success: true });
+  } catch (err) {
+    handleError(err, res);
+  }
+};
