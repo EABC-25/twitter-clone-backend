@@ -20,6 +20,12 @@ interface NewUser {
   verificationExpire: number | null;
 }
 
+interface NewPost {
+  userId: string;
+  postText: string | null;
+  postMedia: string | null;
+}
+
 interface EmailOptions {
   subject: string;
   email: string;
@@ -40,4 +46,10 @@ const MESSAGE = {
   // TO BE CONTINUED
 };
 
-export { type User, type NewUser, type EmailOptions, type CookieOptions };
+export {
+  type User,
+  type NewUser,
+  type EmailOptions,
+  type CookieOptions,
+  type NewPost,
+};

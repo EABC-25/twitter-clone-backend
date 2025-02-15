@@ -32,9 +32,9 @@ export const getUsers = async (_, res: Response) => {
 
 export const getUser = async (req: Request, res: Response) => {
   try {
-    const user = req.body.user[0];
+    const { username, email, createdAt } = req.body.user[0];
     // console.log(user);
-    res.status(200).json({ user });
+    res.status(200).json({ user: { username, email, createdAt } });
   } catch (err) {
     handleError(err, res);
   }

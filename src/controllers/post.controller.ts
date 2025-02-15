@@ -1,9 +1,11 @@
 import { type Request, type Response, type NextFunction } from "express";
 import validator from "validator";
+import sanitizeHtml from "sanitize-html";
 import {
   type User,
   type NewUser,
   type CookieOptions,
+  type NewPost,
   CustomError,
   handleError,
   comparePassword,
@@ -20,6 +22,7 @@ import {
   generateJWToken,
   cloudinaryConfig,
   signUploadForm,
+  addPostToDb,
 } from "../utils";
 
 export const getMediaUploadSign = async (req: Request, res: Response) => {
@@ -53,7 +56,37 @@ export const getPosts = async (req: Request, res: Response) => {
 
 export const addPost = async (req: Request, res: Response) => {
   try {
-    console.log(req.body);
+    const { html, media } = req.body;
+
+    let sanitizedHtml: string | null = null;
+
+    if (html !== null) {
+      sanitizedHtml = sanitizeHtml(html, {
+        allowedTags: ["div", "span", "br"],
+        allowedAttributes: { span: ["style"], div: ["style"] },
+      });
+    }
+
+    const mediaStr: string | null = media.length !== 0 ? media.join("") : null;
+
+    console.log("74", sanitizedHtml);
+    console.log("75", mediaStr);
+
+    if (sanitizedHtml === null && mediaStr === null) {
+      throw new CustomError("Empty post data received.", 404);
+    }
+
+    const status = await addPostToDb({
+      userId: "test",
+      postText: sanitizedHtml,
+      postMedia: mediaStr,
+    });
+
+    console.log(status);
+
+    if (!status) {
+      throw new CustomError("DB: Failed to save post!", 500);
+    }
 
     res.status(201).json({ success: true });
   } catch (err) {

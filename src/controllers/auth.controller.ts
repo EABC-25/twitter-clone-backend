@@ -149,7 +149,7 @@ export const login = async (req: Request, res: Response) => {
     }
 
     const results = await getUserFromDb(
-      `SELECT userId, email, password, verified, createdAt FROM users WHERE email = ?`,
+      `SELECT userId, username, email, password, verified, createdAt FROM users WHERE email = ?`,
       email as string
     );
 
@@ -210,6 +210,7 @@ const sendTokenizedResponse = async (
 
   const jwToken = generateJWToken(data[0].userId);
   const user = {
+    username: data[0].username,
     email: data[0].email,
     createdAt: data[0].createdAt,
   };

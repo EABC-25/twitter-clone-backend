@@ -1,7 +1,7 @@
 import { type RowDataPacket, type ResultSetHeader } from "mysql2/promise";
 import pool from "../../db";
 import db from "../../db/index";
-import { type User, type NewUser } from "../types/types";
+import { type User, type NewUser, type NewPost } from "../types/types";
 
 export const getUsersFromDb = async (): Promise<User[]> => {
   const rows = await db.executeRows(`SELECT * FROM users`);
@@ -48,6 +48,17 @@ export const addUserToDb = async (newUser: NewUser): Promise<boolean> => {
       newUser.verificationToken,
       newUser.verificationExpire,
     ]
+  );
+
+  if (rows[0].affectedRows > 0) return true;
+
+  return false;
+};
+
+export const addPostToDb = async (newPost: NewPost): Promise<boolean> => {
+  const rows = await db.executeResult(
+    `INSERT INTO posts ( userId, postText, postMedia) VALUES (?, ?, ?)`,
+    [newPost.userId, newPost.postText, newPost.postMedia]
   );
 
   if (rows[0].affectedRows > 0) return true;
