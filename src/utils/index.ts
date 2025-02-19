@@ -4,6 +4,7 @@ import {
   type EmailOptions,
   type CookieOptions,
   type NewPost,
+  type Post,
 } from "./types/types";
 import { CustomError } from "./error/CustomError";
 import { handleError } from "./error/errorHandler";
@@ -22,6 +23,7 @@ import {
   deleteUserFromDb,
   verifyUserInDb,
   addPostToDb,
+  getPostsFromDb,
 } from "./db/query";
 import { sendEmail } from "./email/email";
 import cloudinaryConfig from "./config/cloudinary.config";
@@ -33,6 +35,7 @@ export {
   type EmailOptions,
   type CookieOptions,
   type NewPost,
+  type Post,
   CustomError,
   handleError,
   comparePassword,
@@ -50,4 +53,5 @@ export {
   cloudinaryConfig,
   signUploadForm,
   addPostToDb,
+  getPostsFromDb,
 };

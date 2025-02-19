@@ -26,6 +26,14 @@ interface NewPost {
   postMedia: string | null;
 }
 
+interface Post {
+  postId: number;
+  createdAt: string;
+  postText: string;
+  postMedia: string;
+  likeCount: number;
+}
+
 interface EmailOptions {
   subject: string;
   email: string;
@@ -52,4 +60,5 @@ export {
   type EmailOptions,
   type CookieOptions,
   type NewPost,
+  type Post,
 };

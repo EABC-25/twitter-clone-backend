@@ -23,6 +23,7 @@ import {
   cloudinaryConfig,
   signUploadForm,
   addPostToDb,
+  getPostsFromDb,
 } from "../utils";
 
 export const getMediaUploadSign = async (req: Request, res: Response) => {
@@ -43,12 +44,9 @@ export const getMediaUploadSign = async (req: Request, res: Response) => {
 export const getPosts = async (req: Request, res: Response) => {
   try {
     // we query for the posts here
+    const results = await getPostsFromDb();
 
-    res.status(200).json([
-      { id: 1, data: "post one" },
-      { id: 2, data: "post two" },
-      { id: 3, data: "post three" },
-    ]);
+    res.status(200).json(results);
   } catch (err) {
     handleError(err, res);
   }

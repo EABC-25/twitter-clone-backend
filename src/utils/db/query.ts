@@ -1,7 +1,12 @@
 import { type RowDataPacket, type ResultSetHeader } from "mysql2/promise";
 import pool from "../../db";
 import db from "../../db/index";
-import { type User, type NewUser, type NewPost } from "../types/types";
+import {
+  type User,
+  type NewUser,
+  type NewPost,
+  type Post,
+} from "../types/types";
 
 export const getUsersFromDb = async (): Promise<User[]> => {
   const rows = await db.executeRows(`SELECT * FROM users`);
@@ -55,6 +60,16 @@ export const addUserToDb = async (newUser: NewUser): Promise<boolean> => {
   return false;
 };
 
+export const deleteUserFromDb = async (email: string): Promise<boolean> => {
+  const rows = await db.executeResult(`DELETE FROM users WHERE email = ?`, [
+    email,
+  ]);
+
+  if (rows[0].affectedRows > 0) return true;
+
+  return false;
+};
+
 export const addPostToDb = async (newPost: NewPost): Promise<boolean> => {
   const rows = await db.executeResult(
     `INSERT INTO posts ( userId, postText, postMedia) VALUES (?, ?, ?)`,
@@ -66,12 +81,7 @@ export const addPostToDb = async (newPost: NewPost): Promise<boolean> => {
   return false;
 };
 
-export const deleteUserFromDb = async (email: string): Promise<boolean> => {
-  const rows = await db.executeResult(`DELETE FROM users WHERE email = ?`, [
-    email,
-  ]);
-
-  if (rows[0].affectedRows > 0) return true;
-
-  return false;
+export const getPostsFromDb = async (): Promise<Post[]> => {
+  const rows = await db.executeRows(`SELECT * FROM posts`);
+  return rows[0] as Post[];
 };
