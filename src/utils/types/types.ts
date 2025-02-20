@@ -4,6 +4,10 @@ interface User {
   username: string;
   email: string;
   password: string;
+  displayName: string;
+  displayNamePermanent: boolean;
+  dateOfBirth: string;
+  bioText: string;
   verified: boolean;
   verificationToken: string | null;
   verificationExpire: number | null;
@@ -16,6 +20,8 @@ interface NewUser {
   username: string;
   email: string;
   password: string;
+  displayName: string;
+  dateOfBirth: string;
   verificationToken: string | null;
   verificationExpire: number | null;
 }

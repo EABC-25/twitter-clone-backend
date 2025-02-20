@@ -13,12 +13,16 @@ export const getUsersFromDb = async (): Promise<User[]> => {
   return rows[0] as User[];
 };
 
-export const checkUserWithEmail = async (email: string): Promise<User[]> => {
+export const checkUserWithEmail = async (
+  email: string
+): Promise<{ email: string }[]> => {
   const rows = await db.executeRows(`SELECT email FROM users WHERE email = ?`, [
     email,
   ]);
-  return rows[0] as User[];
+  return rows[0] as { email: string }[];
 };
+
+// TO DO: fix types, we need to exactly return the shape of the object defined in the promise return type... not just USER[]. ex. {email: string, username: string etc...}
 
 // method for getting the user from db
 // param1: custom query
@@ -45,11 +49,13 @@ export const verifyUserInDb = async (email: string): Promise<boolean> => {
 
 export const addUserToDb = async (newUser: NewUser): Promise<boolean> => {
   const rows = await db.executeResult(
-    `INSERT INTO users ( username, email, password, verificationToken, verificationExpire) VALUES (?, ?, ?, ?, ?)`,
+    `INSERT INTO users ( username, email, password, displayName, dateOfBirth, verificationToken, verificationExpire) VALUES (?, ?, ?, ?, ?, ?, ?)`,
     [
       newUser.username,
       newUser.email,
       newUser.password,
+      newUser.displayName,
+      newUser.dateOfBirth,
       newUser.verificationToken,
       newUser.verificationExpire,
     ]

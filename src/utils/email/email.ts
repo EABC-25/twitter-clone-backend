@@ -15,9 +15,11 @@ export const sendEmail = async (
   token: string,
   email: string
 ): Promise<boolean> => {
+  // TO DO: we need this endpoint to display a frontend component that will do the POST-request instead of directly accessing this endpoint in the browser to send a request (which will not work because GET) to the backend
+
   const verifyEmailURL = `${req.protocol}://${req.get(
     "host"
-  )}/users/verifyEmail?email=${email}&token=${token}`;
+  )}/api/v1/auth/verifyEmail?email=${email}&token=${token}`;
 
   const message = {
     from: `${process.env.FROM_NAME} <${process.env.FROM_EMAIL}>`,

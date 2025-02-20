@@ -33,7 +33,7 @@ export const checkToken = async (req: Request, res: Response) => {
 export const checkEmail = async (_, res: Response) => {
   try {
     // testing
-    const results = await checkUserWithEmail("test@test.com");
+    const results = await checkUserWithEmail("admin12345@gmail.com");
 
     if (results.length <= 0) throw new CustomError("DB: Email not found!", 404);
 
@@ -45,7 +45,7 @@ export const checkEmail = async (_, res: Response) => {
 
 export const register = async (req: Request, res: Response) => {
   try {
-    const { username, email, password } = req.body;
+    const { username, email, password, dateOfBirth } = req.body;
 
     // we need to create regex here to check email
     if (!validator.isEmail(email)) {
@@ -63,6 +63,8 @@ export const register = async (req: Request, res: Response) => {
       username: username as string,
       email: email as string,
       password: hashedPassword,
+      displayName: username as string,
+      dateOfBirth: dateOfBirth,
       verificationToken: hashedToken,
       verificationExpire: expiration,
     };
@@ -149,7 +151,7 @@ export const login = async (req: Request, res: Response) => {
     }
 
     const results = await getUserFromDb(
-      `SELECT userId, username, email, password, verified, createdAt FROM users WHERE email = ?`,
+      `SELECT userId, username, email, password, verified, createdAt, displayName, displayNamePermanent, dateOfBirth, bioText FROM users WHERE email = ?`,
       email as string
     );
 
@@ -160,6 +162,9 @@ export const login = async (req: Request, res: Response) => {
     const processed = results.map(row => ({
       ...row,
       verified: row.verified ? row.verified[0] === 1 : false,
+      displayNamePermanent: row.displayNamePermanent
+        ? row.displayNamePermanent[0] === 1
+        : false,
     }));
     if (!processed[0].verified) {
       throw new CustomError("User: User is not yet verified!", 403);
@@ -213,6 +218,11 @@ const sendTokenizedResponse = async (
     username: data[0].username,
     email: data[0].email,
     createdAt: data[0].createdAt,
+    displayName: data[0].displayName,
+    displayNamePermanent: data[0].displayNamePermanent,
+    dateOfBirth: data[0].dateOfBirth,
+    bioText: data[0].bioText,
+    verified: data[0].verified,
   };
 
   res.cookie("token", jwToken, options);

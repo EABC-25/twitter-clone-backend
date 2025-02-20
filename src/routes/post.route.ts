@@ -11,6 +11,6 @@ const router = express.Router();
 
 router.get("/getMediaUploadSign", /* protect, */ getMediaUploadSign);
 router.get("/getPosts", protect, getPosts);
-router.post("/addPost", /* protect, */ addPost);
+router.post("/addPost", protect, addPost);
 
 export default router;

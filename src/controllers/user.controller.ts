@@ -32,9 +32,33 @@ export const getUsers = async (_, res: Response) => {
 
 export const getUser = async (req: Request, res: Response) => {
   try {
-    const { username, email, createdAt } = req.body.user[0];
+    const {
+      username,
+      email,
+      createdAt,
+      displayName,
+      displayNamePermanent,
+      dateOfBirth,
+      bioText,
+      verified,
+    } = req.body.user[0];
     // console.log(user);
-    res.status(200).json({ user: { username, email, createdAt } });
+    const dnp = displayNamePermanent ? displayNamePermanent[0] === 1 : false;
+
+    const v = verified ? verified[0] === 1 : false;
+
+    res.status(200).json({
+      user: {
+        username,
+        email,
+        createdAt,
+        displayName,
+        displayNamePermanent: dnp,
+        dateOfBirth,
+        bioText,
+        verified: v,
+      },
+    });
   } catch (err) {
     handleError(err, res);
   }

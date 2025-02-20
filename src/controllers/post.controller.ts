@@ -54,7 +54,7 @@ export const getPosts = async (req: Request, res: Response) => {
 
 export const addPost = async (req: Request, res: Response) => {
   try {
-    const { html, media } = req.body;
+    const { html, media, user } = req.body;
 
     let sanitizedHtml: string | null = null;
 
