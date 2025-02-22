@@ -78,8 +78,14 @@ export const deleteUserFromDb = async (email: string): Promise<boolean> => {
 
 export const addPostToDb = async (newPost: NewPost): Promise<boolean> => {
   const rows = await db.executeResult(
-    `INSERT INTO posts ( userId, postText, postMedia) VALUES (?, ?, ?)`,
-    [newPost.userId, newPost.postText, newPost.postMedia]
+    `INSERT INTO posts ( username, displayName, postText, postMedia, mediaTypes) VALUES (?, ?, ?, ?, ?)`,
+    [
+      newPost.username,
+      newPost.displayName,
+      newPost.postText,
+      newPost.postMedia,
+      newPost.mediaTypes,
+    ]
   );
 
   if (rows[0].affectedRows > 0) return true;
@@ -88,6 +94,9 @@ export const addPostToDb = async (newPost: NewPost): Promise<boolean> => {
 };
 
 export const getPostsFromDb = async (): Promise<Post[]> => {
-  const rows = await db.executeRows(`SELECT * FROM posts`);
+  const rows = await db.executeRows(`
+    SELECT * FROM posts
+    ORDER BY createdAt DESC
+    `);
   return rows[0] as Post[];
 };

@@ -27,9 +27,11 @@ interface NewUser {
 }
 
 interface NewPost {
-  userId: string;
+  username: string;
+  displayName: string;
   postText: string | null;
   postMedia: string | null;
+  mediaTypes: string;
 }
 
 interface Post {
