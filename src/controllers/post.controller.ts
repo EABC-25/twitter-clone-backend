@@ -41,10 +41,16 @@ export const getMediaUploadSign = async (req: Request, res: Response) => {
   }
 };
 
-export const getPosts = async (req: Request, res: Response) => {
+export const getHomePosts = async (req: Request, res: Response) => {
   try {
+    const { page } = req.query;
+    console.log(page);
+    const pageNum = Number(page);
+    const limit: number = 5;
+    const offset = (pageNum - 1) * limit;
     // we query for the posts here
-    const results = await getPostsFromDb();
+    const results = await getPostsFromDb(limit, offset);
+    console.log(results);
 
     res.status(200).json(results);
   } catch (err) {

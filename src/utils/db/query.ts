@@ -93,10 +93,14 @@ export const addPostToDb = async (newPost: NewPost): Promise<boolean> => {
   return false;
 };
 
-export const getPostsFromDb = async (): Promise<Post[]> => {
+export const getPostsFromDb = async (
+  limit: number,
+  offset: number
+): Promise<Post[]> => {
   const rows = await db.executeRows(`
     SELECT * FROM posts
     ORDER BY createdAt DESC
+    LIMIT ${limit} OFFSET ${offset}
     `);
   return rows[0] as Post[];
 };

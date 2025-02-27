@@ -2,7 +2,7 @@ import express from "express";
 
 import {
   getMediaUploadSign,
-  getPosts,
+  getHomePosts,
   addPost,
 } from "../controllers/post.controller";
 import { protect } from "../middlewares/auth/auth";
@@ -10,7 +10,7 @@ import { protect } from "../middlewares/auth/auth";
 const router = express.Router();
 
 router.get("/getMediaUploadSign", /* protect, */ getMediaUploadSign);
-router.get("/getPosts", protect, getPosts);
+router.get("/getHomePosts", protect, getHomePosts);
 router.post("/addPost", protect, addPost);
 
 export default router;
