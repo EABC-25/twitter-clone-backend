@@ -5,6 +5,7 @@ import {
   type CookieOptions,
   type NewPost,
   type Post,
+  type ResponsePosts,
 } from "./types/types";
 import { CustomError } from "./error/CustomError";
 import { handleError } from "./error/errorHandler";
@@ -36,6 +37,7 @@ export {
   type CookieOptions,
   type NewPost,
   type Post,
+  type ResponsePosts,
   CustomError,
   handleError,
   comparePassword,

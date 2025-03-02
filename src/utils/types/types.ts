@@ -1,6 +1,6 @@
 interface User {
   userId: string;
-  createdAt: Date;
+  createdAt: string;
   username: string;
   email: string;
   password: string;
@@ -36,10 +36,19 @@ interface NewPost {
 
 interface Post {
   postId: number;
+  username: string;
+  displayName: string;
   createdAt: string;
-  postText: string;
-  postMedia: string;
+  postText: string | null;
+  postMedia: string | null;
+  mediaTypes: string;
   likeCount: number;
+  replyCount: number;
+}
+
+interface ResponsePosts {
+  posts: Post[];
+  nextPage: boolean;
 }
 
 interface EmailOptions {
@@ -69,4 +78,5 @@ export {
   type CookieOptions,
   type NewPost,
   type Post,
+  type ResponsePosts,
 };

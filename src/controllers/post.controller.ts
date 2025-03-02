@@ -6,6 +6,8 @@ import {
   type NewUser,
   type CookieOptions,
   type NewPost,
+  type Post,
+  type ResponsePosts,
   CustomError,
   handleError,
   comparePassword,
@@ -44,15 +46,29 @@ export const getMediaUploadSign = async (req: Request, res: Response) => {
 export const getHomePosts = async (req: Request, res: Response) => {
   try {
     const { page } = req.query;
-    console.log(page);
     const pageNum = Number(page);
-    const limit: number = 5;
+    const limit: number = 30;
     const offset = (pageNum - 1) * limit;
-    // we query for the posts here
     const results = await getPostsFromDb(limit, offset);
-    console.log(results);
 
-    res.status(200).json(results);
+    if (results.length <= 0) {
+      console.log("results empty");
+      throw new CustomError("DB: No more posts to return.", 404);
+    }
+
+    let response: ResponsePosts = {
+      posts: results,
+      nextPage: false,
+    };
+
+    if (response.posts.length > 30) {
+      response.posts = response.posts.slice(0, 30);
+      response.nextPage = true;
+    } else {
+      response.nextPage = false;
+    }
+
+    res.status(200).json(response);
   } catch (err) {
     handleError(err, res);
   }

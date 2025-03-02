@@ -100,7 +100,8 @@ export const getPostsFromDb = async (
   const rows = await db.executeRows(`
     SELECT * FROM posts
     ORDER BY createdAt DESC
-    LIMIT ${limit} OFFSET ${offset}
+    LIMIT ${limit + 1} OFFSET ${offset}
     `);
+  // adding one more to limit here so that we can signal frontend if there are more posts to retrieve after this batch through type ResponsePost.nextPage
   return rows[0] as Post[];
 };
