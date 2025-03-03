@@ -8,6 +8,7 @@ import {
   type NewPost,
   type Post,
   type ResponsePosts,
+  type ResponsePost,
   CustomError,
   handleError,
   comparePassword,
@@ -26,6 +27,7 @@ import {
   signUploadForm,
   addPostToDb,
   getPostsFromDb,
+  getPostFromDb,
 } from "../utils";
 
 export const getMediaUploadSign = async (req: Request, res: Response) => {
@@ -52,7 +54,6 @@ export const getHomePosts = async (req: Request, res: Response) => {
     const results = await getPostsFromDb(limit, offset);
 
     if (results.length <= 0) {
-      console.log("results empty");
       throw new CustomError("DB: No more posts to return.", 404);
     }
 
@@ -67,6 +68,31 @@ export const getHomePosts = async (req: Request, res: Response) => {
     } else {
       response.nextPage = false;
     }
+
+    res.status(200).json(response);
+  } catch (err) {
+    handleError(err, res);
+  }
+};
+
+export const getPost = async (req: Request, res: Response) => {
+  try {
+    const { postId } = req.query;
+
+    if (!postId) {
+      throw new CustomError("No postId received.", 404);
+    }
+
+    const post = await getPostFromDb(postId as string);
+
+    if (post.length <= 0) {
+      throw new CustomError("DB: post not found.", 404);
+    }
+
+    const response: ResponsePost = {
+      post: post[0],
+      reacts: null,
+    };
 
     res.status(200).json(response);
   } catch (err) {

@@ -6,6 +6,7 @@ import {
   type NewPost,
   type Post,
   type ResponsePosts,
+  type ResponsePost,
 } from "./types/types";
 import { CustomError } from "./error/CustomError";
 import { handleError } from "./error/errorHandler";
@@ -25,6 +26,7 @@ import {
   verifyUserInDb,
   addPostToDb,
   getPostsFromDb,
+  getPostFromDb,
 } from "./db/query";
 import { sendEmail } from "./email/email";
 import cloudinaryConfig from "./config/cloudinary.config";
@@ -38,6 +40,7 @@ export {
   type NewPost,
   type Post,
   type ResponsePosts,
+  type ResponsePost,
   CustomError,
   handleError,
   comparePassword,
@@ -56,4 +59,5 @@ export {
   signUploadForm,
   addPostToDb,
   getPostsFromDb,
+  getPostFromDb,
 };

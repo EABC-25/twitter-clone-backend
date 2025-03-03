@@ -51,6 +51,11 @@ interface ResponsePosts {
   nextPage: boolean;
 }
 
+interface ResponsePost {
+  post: Post;
+  reacts: null;
+}
+
 interface EmailOptions {
   subject: string;
   email: string;
@@ -79,4 +84,5 @@ export {
   type NewPost,
   type Post,
   type ResponsePosts,
+  type ResponsePost,
 };

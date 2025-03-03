@@ -105,3 +105,14 @@ export const getPostsFromDb = async (
   // adding one more to limit here so that we can signal frontend if there are more posts to retrieve after this batch through type ResponsePost.nextPage
   return rows[0] as Post[];
 };
+
+export const getPostFromDb = async (id: string): Promise<Post[]> => {
+  const rows = await db.executeRows(
+    `
+    SELECT * FROM posts WHERE postId = ?
+    `,
+    [id]
+  );
+
+  return rows[0] as Post[];
+};
