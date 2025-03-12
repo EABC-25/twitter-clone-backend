@@ -52,6 +52,9 @@ export const register = async (req: Request, res: Response) => {
       throw new CustomError("User: Invalid email!", 401);
     }
 
+    // don't we also need to check username authenticity?
+    // or username collisions with route namings
+
     const results = await checkUserWithEmail(email);
     if (results.length > 0) {
       throw new CustomError("DB: User already exists!", 400);
@@ -131,6 +134,7 @@ export const verifyEmail = async (req: Request, res: Response) => {
       res.status(200).json({
         success: true,
       });
+      return;
     }
 
     throw new CustomError(

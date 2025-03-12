@@ -18,7 +18,7 @@ const port = 8000;
 
 // Configure CORS to allow requests from localhost:3000
 const corsOptions = {
-  origin: process.env.FRONTEND_URL,
+  origin: process.env.FRONTEND_URL || "http://localhost:8080",
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   credentials: true, // Allow cookies and other credentials
 };

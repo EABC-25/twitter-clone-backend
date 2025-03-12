@@ -10,7 +10,7 @@ import { protect } from "../middlewares/auth/auth";
 
 const router = express.Router();
 
-router.get("/getMediaUploadSign", /* protect, */ getMediaUploadSign);
+router.get("/getMediaUploadSign", protect, getMediaUploadSign);
 router.get("/getHomePosts", protect, getHomePosts);
 router.get("/getPost", protect, getPost);
 router.post("/addPost", protect, addPost);

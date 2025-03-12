@@ -32,7 +32,7 @@ export const getUsers = async (_, res: Response) => {
 
 export const getUser = async (req: Request, res: Response) => {
   try {
-    const {
+    let {
       username,
       email,
       createdAt,
@@ -42,10 +42,14 @@ export const getUser = async (req: Request, res: Response) => {
       bioText,
       verified,
     } = req.body.user[0];
-    // console.log(user);
+
     const dnp = displayNamePermanent ? displayNamePermanent[0] === 1 : false;
 
     const v = verified ? verified[0] === 1 : false;
+
+    if (!v) {
+      throw new CustomError("User: User is not yet verified!", 403);
+    }
 
     res.status(200).json({
       user: {
@@ -56,6 +60,52 @@ export const getUser = async (req: Request, res: Response) => {
         displayNamePermanent: dnp,
         dateOfBirth,
         bioText,
+        verified: v,
+      },
+    });
+  } catch (err) {
+    handleError(err, res);
+  }
+};
+
+export const getUserName = async (req: Request, res: Response) => {
+  try {
+    const { username: un } = req.query;
+
+    console.log(un);
+
+    if (!un) {
+      throw new CustomError("DB: User not found!", 404);
+    }
+
+    const results = await getUserFromDb(
+      `SELECT username, email, createdAt, displayName, displayNamePermanent, dateOfBirth, bioText, verified FROM users WHERE username = ?`,
+      un as string
+    );
+
+    if (results.length <= 0) {
+      throw new CustomError("DB: User not found!", 404);
+    }
+
+    const dnp = results[0].displayNamePermanent
+      ? results[0].displayNamePermanent[0] === 1
+      : false;
+
+    const v = results[0].verified ? results[0].verified[0] === 1 : false;
+
+    if (!v) {
+      throw new CustomError("User: User is not yet verified!", 403);
+    }
+
+    res.status(200).json({
+      user: {
+        username: results[0].username,
+        email: results[0].email,
+        createdAt: results[0].createdAt,
+        displayName: results[0].displayName,
+        displayNamePermanent: dnp,
+        dateOfBirth: results[0].dateOfBirth,
+        bioText: results[0].bioText,
         verified: v,
       },
     });
