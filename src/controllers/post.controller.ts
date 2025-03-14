@@ -28,6 +28,7 @@ import {
   addPostToDb,
   getPostsFromDb,
   getPostFromDb,
+  getUserPostsFromDb,
 } from "../utils";
 
 export const getMediaUploadSign = async (req: Request, res: Response) => {
@@ -48,6 +49,11 @@ export const getMediaUploadSign = async (req: Request, res: Response) => {
 export const getHomePosts = async (req: Request, res: Response) => {
   try {
     const { page } = req.query;
+
+    if (!page) {
+      throw new CustomError("No page received.", 404);
+    }
+
     const pageNum = Number(page);
     const limit: number = 30;
     const offset = (pageNum - 1) * limit;
@@ -93,6 +99,41 @@ export const getPost = async (req: Request, res: Response) => {
       post: post[0],
       reacts: null,
     };
+
+    res.status(200).json(response);
+  } catch (err) {
+    handleError(err, res);
+  }
+};
+
+export const getUserPosts = async (req: Request, res: Response) => {
+  try {
+    const { username, page } = req.query;
+
+    if (!username || !page) {
+      throw new CustomError("No username received.", 404);
+    }
+
+    const pageNum = Number(page);
+    const limit: number = 30;
+    const offset = (pageNum - 1) * limit;
+    const results = await getUserPostsFromDb(limit, offset, username as string);
+
+    if (results.length <= 0) {
+      throw new CustomError("DB: No more posts to return.", 404);
+    }
+
+    let response: ResponsePosts = {
+      posts: results,
+      nextPage: false,
+    };
+
+    if (response.posts.length > 30) {
+      response.posts = response.posts.slice(0, 30);
+      response.nextPage = true;
+    } else {
+      response.nextPage = false;
+    }
 
     res.status(200).json(response);
   } catch (err) {

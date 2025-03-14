@@ -27,6 +27,7 @@ import {
   addPostToDb,
   getPostsFromDb,
   getPostFromDb,
+  getUserPostsFromDb,
 } from "./db/query";
 import { sendEmail } from "./email/email";
 import cloudinaryConfig from "./config/cloudinary.config";
@@ -60,4 +61,5 @@ export {
   addPostToDb,
   getPostsFromDb,
   getPostFromDb,
+  getUserPostsFromDb,
 };

@@ -116,3 +116,21 @@ export const getPostFromDb = async (id: string): Promise<Post[]> => {
 
   return rows[0] as Post[];
 };
+
+export const getUserPostsFromDb = async (
+  limit: number,
+  offset: number,
+  username: string
+): Promise<Post[]> => {
+  const rows = await db.executeRows(
+    `
+    SELECT * FROM posts
+    WHERE username = ?
+    ORDER BY createdAt DESC
+    LIMIT ${limit + 1} OFFSET ${offset}
+    `,
+    [username]
+  );
+  // adding one more to limit here so that we can signal frontend if there are more posts to retrieve after this batch through type ResponsePost.nextPage
+  return rows[0] as Post[];
+};
