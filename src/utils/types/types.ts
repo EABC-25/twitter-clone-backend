@@ -14,6 +14,7 @@ interface User {
   forgotPasswordFlag: boolean;
   forgotPasswordToken: string | null;
   forgotPasswordExpire: string | null;
+  likedPosts: string | null;
 }
 
 interface NewUser {

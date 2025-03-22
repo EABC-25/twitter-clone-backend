@@ -28,6 +28,7 @@ import {
   getPostsFromDb,
   getPostFromDb,
   getUserPostsFromDb,
+  updateLikeInUserAndPost,
 } from "./db/query";
 import { sendEmail } from "./email/email";
 import cloudinaryConfig from "./config/cloudinary.config";
@@ -62,4 +63,5 @@ export {
   getPostsFromDb,
   getPostFromDb,
   getUserPostsFromDb,
+  updateLikeInUserAndPost,
 };

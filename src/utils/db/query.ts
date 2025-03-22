@@ -134,3 +134,33 @@ export const getUserPostsFromDb = async (
   // adding one more to limit here so that we can signal frontend if there are more posts to retrieve after this batch through type ResponsePost.nextPage
   return rows[0] as Post[];
 };
+
+export const updateLikeInUserAndPost = async (
+  type: string,
+  postId: string,
+  userId: string
+): Promise<boolean> => {
+  let usersQuery: string;
+  let postsQuery: string;
+  let params: any[];
+
+  console.log(type, postId, userId);
+
+  if (type === "add") {
+    usersQuery = `UPDATE users SET likedPosts = COALESCE(CONCAT(likedPosts, ',', ?), ?) WHERE userId = ?`;
+    params = [postId, postId, userId];
+    postsQuery = `UPDATE posts SET likeCount = likeCount + 1 WHERE postId = ?`;
+  } else if (type === "remove") {
+    usersQuery = `UPDATE users SET likedPosts = NULLIF(TRIM(BOTH ',' FROM REPLACE(CONCAT(',', likedPosts, ','), CONCAT(',', ?, ','), ',')), '') WHERE userId = ?`;
+    params = [postId, userId];
+    postsQuery = `UPDATE posts SET likeCount = GREATEST(likeCount - 1, 0) WHERE postId = ?`;
+  }
+  const usersResult = await db.executeResult(usersQuery, params);
+  const postsResult = await db.executeResult(postsQuery, [postId]);
+
+  if (usersResult[0].affectedRows !== 1 && postsResult[0].affectedRows !== 1) {
+    return false;
+  }
+
+  return true;
+};

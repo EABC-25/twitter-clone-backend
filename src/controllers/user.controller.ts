@@ -41,6 +41,7 @@ export const getUser = async (req: Request, res: Response) => {
       dateOfBirth,
       bioText,
       verified,
+      likedPosts,
     } = req.body.user[0];
 
     const dnp = displayNamePermanent ? displayNamePermanent[0] === 1 : false;
@@ -61,6 +62,7 @@ export const getUser = async (req: Request, res: Response) => {
         dateOfBirth,
         bioText,
         verified: v,
+        likedPosts,
       },
     });
   } catch (err) {
