@@ -14,7 +14,18 @@ interface User {
   forgotPasswordFlag: boolean;
   forgotPasswordToken: string | null;
   forgotPasswordExpire: string | null;
-  likedPosts: string | null;
+}
+// userId, username, email, createdAt, displayName, displayNamePermanent, dateOfBirth, bioText, verified
+interface UserByToken {
+  userId: string;
+  createdAt: string;
+  username: string;
+  email: string;
+  displayName: string;
+  displayNamePermanent: boolean;
+  dateOfBirth: string;
+  bioText: string;
+  verified: boolean;
 }
 
 interface NewUser {
@@ -80,6 +91,7 @@ const MESSAGE = {
 export {
   type User,
   type NewUser,
+  type UserByToken,
   type EmailOptions,
   type CookieOptions,
   type NewPost,

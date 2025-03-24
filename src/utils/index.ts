@@ -28,6 +28,7 @@ import {
   getPostsFromDb,
   getPostFromDb,
   getUserPostsFromDb,
+  getUserLikedPostsFromDb,
   updateLikeInUserAndPost,
 } from "./db/query";
 import { sendEmail } from "./email/email";
@@ -63,5 +64,6 @@ export {
   getPostsFromDb,
   getPostFromDb,
   getUserPostsFromDb,
+  getUserLikedPostsFromDb,
   updateLikeInUserAndPost,
 };

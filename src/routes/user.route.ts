@@ -3,6 +3,7 @@ import express from "express";
 import {
   getUsers,
   getUser,
+  getUserTest,
   getUserName,
   deleteUser,
 } from "../controllers/user.controller";
@@ -12,6 +13,7 @@ const router = express.Router();
 
 router.get("/getUsers", getUsers);
 router.get("/getUser", protect, getUser);
+router.get("/getUser/test", getUserTest);
 router.get("/getUserName", protect, getUserName);
 router.delete("/deleteUser", deleteUser);
 

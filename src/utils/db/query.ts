@@ -4,6 +4,7 @@ import db from "../../db/index";
 import {
   type User,
   type NewUser,
+  type UserByToken,
   type NewPost,
   type Post,
 } from "../types/types";
@@ -35,6 +36,19 @@ export const getUserFromDb = async (
 
   return rows[0] as User[];
 };
+
+export const getUserLikedPostsFromDb = async (
+  userId: string
+): Promise<{ postId: string }[]> => {
+  const rows = await db.executeRows(
+    `SELECT postId FROM post_likes WHERE userId = ?`,
+    [userId]
+  );
+
+  return rows[0] as { postId: string }[];
+};
+
+// INSERT INTO post_likes (userId, postId) VALUES('313168b5-ef63-11ef-a3db-88a4c22b5dbc', 'b879a07e-fef5-11ef-86f2-88a4c22b5dbc');
 
 export const verifyUserInDb = async (email: string): Promise<boolean> => {
   const rows = await db.executeResult(
