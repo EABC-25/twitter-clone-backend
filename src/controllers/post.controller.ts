@@ -29,7 +29,7 @@ import {
   getPostsFromDb,
   getPostFromDb,
   getUserPostsFromDb,
-  updateLikeInUserAndPost,
+  updatePostLikes,
 } from "../utils";
 
 export const getMediaUploadSign = async (req: Request, res: Response) => {
@@ -101,7 +101,7 @@ export const getPost = async (req: Request, res: Response) => {
       reacts: null,
     };
 
-    res.status(200).json(response);
+    res.status(200).json(post[0]);
   } catch (err) {
     handleError(err, res);
   }
@@ -202,15 +202,19 @@ export const addPost = async (req: Request, res: Response) => {
 export const updateLikes = async (req: Request, res: Response) => {
   try {
     const { type, postId, user } = req.body;
-    console.log(type, postId, user);
+    console.log(type, postId, user[0].userId);
 
-    const result = await updateLikeInUserAndPost(type, postId, user[0].userId);
+    const result = await updatePostLikes(type, postId, user[0].userId);
 
+    console.log(result);
     if (!result) {
       throw new CustomError("DB: Operation failed!", 404);
     }
 
-    res.status(200);
+    res.status(200).json({
+      success: true,
+    });
+    // throw new CustomError("testError.", 404);
   } catch (err) {
     handleError(err, res);
   }

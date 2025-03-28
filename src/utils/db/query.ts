@@ -149,32 +149,42 @@ export const getUserPostsFromDb = async (
   return rows[0] as Post[];
 };
 
-export const updateLikeInUserAndPost = async (
+export const updatePostLikes = async (
   type: string,
   postId: string,
   userId: string
 ): Promise<boolean> => {
-  let usersQuery: string;
-  let postsQuery: string;
-  let params: any[];
+  try {
+    let postLikesQuery: string;
+    let postQuery: string;
 
-  console.log(type, postId, userId);
+    console.log(type, postId, userId);
 
-  if (type === "add") {
-    usersQuery = `UPDATE users SET likedPosts = COALESCE(CONCAT(likedPosts, ',', ?), ?) WHERE userId = ?`;
-    params = [postId, postId, userId];
-    postsQuery = `UPDATE posts SET likeCount = likeCount + 1 WHERE postId = ?`;
-  } else if (type === "remove") {
-    usersQuery = `UPDATE users SET likedPosts = NULLIF(TRIM(BOTH ',' FROM REPLACE(CONCAT(',', likedPosts, ','), CONCAT(',', ?, ','), ',')), '') WHERE userId = ?`;
-    params = [postId, userId];
-    postsQuery = `UPDATE posts SET likeCount = GREATEST(likeCount - 1, 0) WHERE postId = ?`;
-  }
-  const usersResult = await db.executeResult(usersQuery, params);
-  const postsResult = await db.executeResult(postsQuery, [postId]);
+    if (type === "add") {
+      postLikesQuery = `INSERT INTO post_likes (postId, userId) VALUES (?, ?)`;
+      postQuery = `UPDATE posts SET likeCount = likeCount + 1 WHERE postId = ?`;
+    } else if (type === "remove") {
+      postLikesQuery = `DELETE FROM post_likes WHERE postId = ? AND userId = ?`;
+      postQuery = `UPDATE posts SET likeCount = GREATEST(likeCount - 1, 0) WHERE postId = ?`;
+    }
+    const postLikesResult = await db.executeResult(postLikesQuery, [
+      postId,
+      userId,
+    ]);
+    const postResult = await db.executeResult(postQuery, [postId]);
 
-  if (usersResult[0].affectedRows !== 1 && postsResult[0].affectedRows !== 1) {
+    console.log(postLikesResult);
+    console.log(postResult);
+
+    if (
+      postLikesResult[0].affectedRows !== 1 &&
+      postResult[0].affectedRows !== 1
+    ) {
+      return false;
+    }
+
+    return true;
+  } catch (err) {
     return false;
   }
-
-  return true;
 };
