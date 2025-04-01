@@ -99,20 +99,21 @@ export const getUser = async (req: Request, res: Response) => {
 
     const lpRes = await getUserLikedPostsFromDb(userId);
     const lpResMappedVals: string[] = lpRes.map(obj => obj.postId);
-    console.log(lpResMappedVals);
+    const user = {
+      username,
+      email,
+      createdAt,
+      displayName,
+      displayNamePermanent: dnp,
+      dateOfBirth,
+      bioText,
+      verified: v,
+      likedPosts: lpResMappedVals,
+    };
+    console.log("user: ", user);
 
     res.status(200).json({
-      user: {
-        username,
-        email,
-        createdAt,
-        displayName,
-        displayNamePermanent: dnp,
-        dateOfBirth,
-        bioText,
-        verified: v,
-        likedPosts: lpResMappedVals,
-      },
+      user: user,
     });
   } catch (err) {
     handleError(err, res);

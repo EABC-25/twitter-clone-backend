@@ -14,6 +14,7 @@ import {
   sendEmail,
   getUsersFromDb,
   getUserFromDb,
+  getUserLikedPostsFromDb,
   checkUserWithEmail,
   addUserToDb,
   deleteUserFromDb,
@@ -163,22 +164,37 @@ export const login = async (req: Request, res: Response) => {
       throw new CustomError("DB: User/Email not found!", 404);
     }
 
-    const processed = results.map(row => ({
-      ...row,
-      verified: row.verified ? row.verified[0] === 1 : false,
-      displayNamePermanent: row.displayNamePermanent
-        ? row.displayNamePermanent[0] === 1
-        : false,
-    }));
-    if (!processed[0].verified) {
+    const dnp = results[0].displayNamePermanent
+      ? results[0].displayNamePermanent[0] === 1
+      : false;
+
+    const v = results[0].verified ? results[0].verified[0] === 1 : false;
+
+    if (!v) {
       throw new CustomError("User: User is not yet verified!", 403);
     }
 
-    const isMatching = await comparePassword(password, processed[0].password);
+    const isMatching = await comparePassword(password, results[0].password);
 
     if (!isMatching) {
       throw new CustomError("User: Invalid Password!", 401);
     }
+
+    const lpRes = await getUserLikedPostsFromDb(results[0].userId);
+    const lpResMappedVals: string[] = lpRes.map(obj => obj.postId);
+
+    const processed = {
+      userId: results[0].userId,
+      username: results[0].username,
+      email: results[0].email,
+      createdAt: results[0].createdAt,
+      displayName: results[0].displayName,
+      displayNamePermanent: results[0].displayNamePermanent,
+      dateOfBirth: results[0].dateOfBirth,
+      bioText: results[0].bioText,
+      verified: results[0].verified,
+      likedPosts: lpResMappedVals,
+    };
 
     sendTokenizedResponse(processed, 200, res);
   } catch (err) {
@@ -215,19 +231,12 @@ const sendTokenizedResponse = async (
       success: true,
     });
   }
+
   console.log(data);
 
-  const jwToken = generateJWToken(data[0].userId);
-  const user = {
-    username: data[0].username,
-    email: data[0].email,
-    createdAt: data[0].createdAt,
-    displayName: data[0].displayName,
-    displayNamePermanent: data[0].displayNamePermanent,
-    dateOfBirth: data[0].dateOfBirth,
-    bioText: data[0].bioText,
-    verified: data[0].verified,
-  };
+  const jwToken = generateJWToken(data.userId);
+
+  const user = { ...data, userId: null };
 
   res.cookie("token", jwToken, options);
   res.status(statusCode).json({

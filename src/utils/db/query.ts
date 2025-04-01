@@ -90,10 +90,15 @@ export const deleteUserFromDb = async (email: string): Promise<boolean> => {
   return false;
 };
 
-export const addPostToDb = async (newPost: NewPost): Promise<boolean> => {
-  const rows = await db.executeResult(
-    `INSERT INTO posts ( username, displayName, postText, postMedia, mediaTypes) VALUES (?, ?, ?, ?, ?)`,
+export const addPostToDb = async (newPost: NewPost): Promise<Post | null> => {
+  const resultId = await db.executeRows(`SELECT UUID() AS uuid;`);
+
+  const newUuid = resultId[0][0].uuid;
+
+  const resultPost = await db.executeResult(
+    `INSERT INTO posts (postId, username, displayName, postText, postMedia, mediaTypes) VALUES (?, ?, ?, ?, ?, ?)`,
     [
+      newUuid,
       newPost.username,
       newPost.displayName,
       newPost.postText,
@@ -102,9 +107,16 @@ export const addPostToDb = async (newPost: NewPost): Promise<boolean> => {
     ]
   );
 
-  if (rows[0].affectedRows > 0) return true;
+  if (resultPost[0].affectedRows <= 0) return null;
 
-  return false;
+  const resultNewPost = await db.executeRows(
+    `SELECT * FROM posts WHERE postId = ?`,
+    [newUuid]
+  );
+
+  if (resultNewPost[0].length === 0) return null;
+
+  return resultNewPost[0][0] as Post;
 };
 
 export const getPostsFromDb = async (

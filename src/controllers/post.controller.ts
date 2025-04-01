@@ -168,18 +168,18 @@ export const addPost = async (req: Request, res: Response) => {
     const mediaTypesStr: string | null =
       mediaTypes.length !== 0 ? mediaTypes.join(",") : null;
 
-    console.log("80", html);
-    console.log("81", cssUpdated);
-    console.log("82", sanitizedHtml);
-    console.log("83", mediaStr);
-    console.log("84", mediaTypesStr);
-    console.log("85", user);
+    // console.log("80", html);
+    // console.log("81", cssUpdated);
+    // console.log("82", sanitizedHtml);
+    // console.log("83", mediaStr);
+    // console.log("84", mediaTypesStr);
+    // console.log("85", user);
 
     if (sanitizedHtml === null && mediaStr === null) {
       throw new CustomError("Empty post data received.", 404);
     }
 
-    const status = await addPostToDb({
+    const newPost = await addPostToDb({
       username: user[0].username,
       displayName: user[0].displayName,
       postText: sanitizedHtml,
@@ -187,13 +187,15 @@ export const addPost = async (req: Request, res: Response) => {
       mediaTypes: mediaTypesStr,
     });
 
-    console.log(status);
+    console.log(newPost);
 
-    if (!status) {
+    throw new CustomError("DB: Failed to save post!", 500);
+
+    if (!newPost || newPost === null) {
       throw new CustomError("DB: Failed to save post!", 500);
     }
 
-    res.status(201).json({ success: true });
+    res.status(201).json(newPost);
   } catch (err) {
     handleError(err, res);
   }
