@@ -189,10 +189,10 @@ export const login = async (req: Request, res: Response) => {
       email: results[0].email,
       createdAt: results[0].createdAt,
       displayName: results[0].displayName,
-      displayNamePermanent: results[0].displayNamePermanent,
+      displayNamePermanent: dnp,
       dateOfBirth: results[0].dateOfBirth,
       bioText: results[0].bioText,
-      verified: results[0].verified,
+      verified: v,
       likedPosts: lpResMappedVals,
     };
 
@@ -232,7 +232,7 @@ const sendTokenizedResponse = async (
     });
   }
 
-  console.log(data);
+  // console.log(data);
 
   const jwToken = generateJWToken(data.userId);
 

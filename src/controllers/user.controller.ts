@@ -110,7 +110,7 @@ export const getUser = async (req: Request, res: Response) => {
       verified: v,
       likedPosts: lpResMappedVals,
     };
-    console.log("user: ", user);
+    // console.log("user: ", user);
 
     res.status(200).json({
       user: user,

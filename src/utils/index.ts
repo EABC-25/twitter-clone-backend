@@ -7,6 +7,9 @@ import {
   type Post,
   type ResponsePosts,
   type ResponsePost,
+  type NewReply,
+  type Reply,
+  type ResponseReplies,
 } from "./types/types";
 import { CustomError } from "./error/CustomError";
 import { handleError } from "./error/errorHandler";
@@ -29,7 +32,10 @@ import {
   getPostFromDb,
   getUserPostsFromDb,
   getUserLikedPostsFromDb,
-  updatePostLikes,
+  updatePostLikesInDb,
+  addReplyToDb,
+  getPostRepliesFromDb,
+  getReplyFromDb,
 } from "./db/query";
 import { sendEmail } from "./email/email";
 import cloudinaryConfig from "./config/cloudinary.config";
@@ -44,6 +50,9 @@ export {
   type Post,
   type ResponsePosts,
   type ResponsePost,
+  type NewReply,
+  type Reply,
+  type ResponseReplies,
   CustomError,
   handleError,
   comparePassword,
@@ -65,5 +74,8 @@ export {
   getPostFromDb,
   getUserPostsFromDb,
   getUserLikedPostsFromDb,
-  updatePostLikes,
+  updatePostLikesInDb,
+  addReplyToDb,
+  getPostRepliesFromDb,
+  getReplyFromDb,
 };

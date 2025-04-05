@@ -47,7 +47,7 @@ interface NewPost {
 }
 
 interface Post {
-  postId: number;
+  postId: string;
   username: string;
   displayName: string;
   createdAt: string;
@@ -81,6 +81,31 @@ interface CookieOptions {
   secure: boolean | null;
 }
 
+interface NewReply {
+  postId: string;
+  posterName: string;
+  username: string;
+  displayName: string;
+  postText: string | null;
+}
+
+interface Reply {
+  replyId: string;
+  postId: string;
+  posterName: string;
+  username: string;
+  displayName: string;
+  createdAt: string;
+  postText: string;
+  likeCount: number;
+  replyCount: number;
+}
+
+interface ResponseReplies {
+  replies: Reply[];
+  nextPage: boolean;
+}
+
 const MESSAGE = {
   SUCCESS: "SUCCESS",
   DB_ERROR: "FAILED_DB",
@@ -98,4 +123,7 @@ export {
   type Post,
   type ResponsePosts,
   type ResponsePost,
+  type NewReply,
+  type Reply,
+  type ResponseReplies,
 };

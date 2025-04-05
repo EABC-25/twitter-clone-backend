@@ -7,6 +7,8 @@ import {
   type UserByToken,
   type NewPost,
   type Post,
+  type NewReply,
+  type Reply,
 } from "../types/types";
 
 export const getUsersFromDb = async (): Promise<User[]> => {
@@ -132,13 +134,11 @@ export const getPostsFromDb = async (
   return rows[0] as Post[];
 };
 
-export const getPostFromDb = async (id: string): Promise<Post[]> => {
-  const rows = await db.executeRows(
-    `
-    SELECT * FROM posts WHERE postId = ?
-    `,
-    [id]
-  );
+export const getPostFromDb = async (
+  query: string,
+  index: string
+): Promise<Post[]> => {
+  const rows = await db.executeRows(query, [index]);
 
   return rows[0] as Post[];
 };
@@ -161,7 +161,7 @@ export const getUserPostsFromDb = async (
   return rows[0] as Post[];
 };
 
-export const updatePostLikes = async (
+export const updatePostLikesInDb = async (
   type: string,
   postId: string,
   userId: string
@@ -199,4 +199,63 @@ export const updatePostLikes = async (
   } catch (err) {
     return false;
   }
+};
+
+export const addReplyToDb = async (
+  newReply: NewReply
+): Promise<Reply | null> => {
+  const resultId = await db.executeRows(`SELECT UUID() AS uuid;`);
+
+  const newUuid = resultId[0][0].uuid;
+
+  const resultReply = await db.executeResult(
+    `INSERT INTO replies (replyId, postId, posterName, username, displayName, postText) VALUES (?, ?, ?, ?, ?, ?)`,
+    [
+      newUuid,
+      newReply.postId,
+      newReply.posterName,
+      newReply.username,
+      newReply.displayName,
+      newReply.postText,
+    ]
+  );
+
+  if (resultReply[0].affectedRows <= 0) return null;
+
+  const resultNewReply = await db.executeRows(
+    `SELECT * FROM replies WHERE replyId = ?`,
+    [newUuid]
+  );
+
+  if (resultNewReply[0].length === 0) return null;
+
+  return resultNewReply[0][0] as Reply;
+};
+
+export const getPostRepliesFromDb = async (
+  limit: number,
+  offset: number,
+  postId: string
+): Promise<Reply[]> => {
+  const rows = await db.executeRows(
+    `
+    SELECT * FROM replies
+    WHERE postId = ?
+    ORDER BY createdAt DESC
+    LIMIT ${limit + 1} OFFSET ${offset}
+    `,
+    [postId]
+  );
+
+  // adding one more to limit here so that we can signal frontend if there are more posts to retrieve after this batch through type ResponsePost.nextPage
+  return rows[0] as Reply[];
+};
+
+export const getReplyFromDb = async (
+  query: string,
+  index: string
+): Promise<Reply[]> => {
+  const rows = await db.executeRows(query, [index]);
+
+  return rows[0] as Reply[];
 };

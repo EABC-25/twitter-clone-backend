@@ -9,6 +9,7 @@ import {
   type Post,
   type ResponsePosts,
   type ResponsePost,
+  type ResponseReplies,
   CustomError,
   handleError,
   comparePassword,
@@ -29,7 +30,10 @@ import {
   getPostsFromDb,
   getPostFromDb,
   getUserPostsFromDb,
-  updatePostLikes,
+  updatePostLikesInDb,
+  addReplyToDb,
+  getPostRepliesFromDb,
+  getReplyFromDb,
 } from "../utils";
 
 export const getMediaUploadSign = async (req: Request, res: Response) => {
@@ -90,7 +94,10 @@ export const getPost = async (req: Request, res: Response) => {
       throw new CustomError("No postId received.", 404);
     }
 
-    const post = await getPostFromDb(postId as string);
+    const post = await getPostFromDb(
+      "SELECT * FROM posts WHERE postId = ?",
+      postId as string
+    );
 
     if (post.length <= 0) {
       throw new CustomError("DB: post not found.", 404);
@@ -100,6 +107,8 @@ export const getPost = async (req: Request, res: Response) => {
       post: post[0],
       reacts: null,
     };
+
+    // console.log("getPost ran: ", post[0]);
 
     res.status(200).json(post[0]);
   } catch (err) {
@@ -168,13 +177,6 @@ export const addPost = async (req: Request, res: Response) => {
     const mediaTypesStr: string | null =
       mediaTypes.length !== 0 ? mediaTypes.join(",") : null;
 
-    // console.log("80", html);
-    // console.log("81", cssUpdated);
-    // console.log("82", sanitizedHtml);
-    // console.log("83", mediaStr);
-    // console.log("84", mediaTypesStr);
-    // console.log("85", user);
-
     if (sanitizedHtml === null && mediaStr === null) {
       throw new CustomError("Empty post data received.", 404);
     }
@@ -187,13 +189,11 @@ export const addPost = async (req: Request, res: Response) => {
       mediaTypes: mediaTypesStr,
     });
 
-    console.log(newPost);
-
-    throw new CustomError("DB: Failed to save post!", 500);
-
     if (!newPost || newPost === null) {
       throw new CustomError("DB: Failed to save post!", 500);
     }
+
+    console.log(newPost);
 
     res.status(201).json(newPost);
   } catch (err) {
@@ -206,7 +206,7 @@ export const updateLikes = async (req: Request, res: Response) => {
     const { type, postId, user } = req.body;
     console.log(type, postId, user[0].userId);
 
-    const result = await updatePostLikes(type, postId, user[0].userId);
+    const result = await updatePostLikesInDb(type, postId, user[0].userId);
 
     console.log(result);
     if (!result) {
@@ -217,6 +217,151 @@ export const updateLikes = async (req: Request, res: Response) => {
       success: true,
     });
     // throw new CustomError("testError.", 404);
+  } catch (err) {
+    handleError(err, res);
+  }
+};
+
+export const addReply = async (req: Request, res: Response) => {
+  try {
+    const { html, postId, posterName, user } = req.body;
+
+    // we need to check if postId and posterName exists in the database
+    const resUser = await getUserFromDb(
+      `SELECT EXISTS(SELECT 1 FROM users WHERE username = ?)`,
+      posterName as string
+    );
+
+    const resPost = await getPostFromDb(
+      "SELECT EXISTS(SELECT 1 FROM posts WHERE postId = ?)",
+      postId as string
+    );
+
+    console.log("resUser: ", resUser);
+    console.log("resPost: ", resPost);
+
+    if (resUser.length <= 0) {
+      throw new CustomError("DB: Poster account not found!", 404);
+    }
+
+    if (resPost.length <= 0) {
+      throw new CustomError("DB: Post not found!", 404);
+    }
+
+    let sanitizedHtml: string | null = null;
+
+    const cssUpdated: string =
+      html !== null
+        ? html
+            .replace(/font-size:\s*1\.25rem;?/g, "font-size: 1rem;")
+            .replace(/letter-spacing:\s*0\.025em;?/g, "")
+            .replace(/font-weight:\s*300;?/g, "")
+        : "";
+
+    if (html !== null && cssUpdated !== "") {
+      sanitizedHtml = sanitizeHtml(cssUpdated, {
+        allowedTags: ["div", "span", "br"],
+        allowedAttributes: { span: ["style"], div: ["style"] },
+      });
+    }
+
+    if (sanitizedHtml === null) {
+      throw new CustomError("Empty post data received.", 404);
+    }
+
+    const newReply = await addReplyToDb({
+      postId: postId,
+      posterName: posterName,
+      username: user[0].username,
+      displayName: user[0].displayName,
+      postText: sanitizedHtml,
+    });
+
+    if (!newReply || newReply === null) {
+      throw new CustomError("DB: Failed to save reply!", 500);
+    }
+
+    console.log("newReply: ", newReply);
+
+    res.status(201).json(newReply);
+  } catch (err) {
+    handleError(err, res);
+  }
+};
+
+export const getPostReplies = async (req: Request, res: Response) => {
+  try {
+    const { postId, page } = req.query;
+
+    if (!page || !postId) {
+      throw new CustomError("Insufficient query received.", 404);
+    }
+
+    const resPost = await getPostFromDb(
+      "SELECT EXISTS(SELECT 1 FROM posts WHERE postId = ?)",
+      postId as string
+    );
+
+    if (Object.values(resPost[0])[0] !== 1) {
+      throw new CustomError("DB: Post not found!", 404);
+    }
+
+    const pageNum = Number(page);
+    const limit: number = 3;
+    const offset = (pageNum - 1) * limit;
+    const results = await getPostRepliesFromDb(limit, offset, postId as string);
+
+    console.log(results);
+
+    if (results.length <= 0) {
+      throw new CustomError("DB: No more posts to return.", 404);
+    }
+
+    let response: ResponseReplies = {
+      replies: results,
+      nextPage: false,
+    };
+
+    if (response.replies.length > 3) {
+      response.replies = response.replies.slice(0, 3);
+      response.nextPage = true;
+    } else {
+      response.nextPage = false;
+    }
+
+    console.log(response);
+
+    res.status(200).json(response);
+  } catch (err) {
+    handleError(err, res);
+  }
+};
+
+export const getReply = async (req: Request, res: Response) => {
+  try {
+    const { replyId } = req.query;
+
+    if (!replyId) {
+      throw new CustomError("No postId received.", 404);
+    }
+
+    const reply = await getReplyFromDb(
+      "SELECT * FROM replies WHERE replyId = ?",
+      replyId as string
+    );
+
+    if (reply.length <= 0) {
+      throw new CustomError("DB: reply not found.", 404);
+    }
+
+    // const response: ResponsePost = {
+    //   reply: reply[0],
+    //   reacts: null,
+    // };
+
+    // console.log("getPost ran: ", post[0]);
+
+    res.status(200).json(reply[0]);
   } catch (err) {
     handleError(err, res);
   }
