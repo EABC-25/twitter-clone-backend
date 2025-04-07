@@ -222,6 +222,13 @@ export const addReplyToDb = async (
 
   if (resultReply[0].affectedRows <= 0) return null;
 
+  const postResult = await db.executeResult(
+    `UPDATE posts SET replyCount = replyCount + 1 WHERE postId = ?`,
+    [newReply.postId]
+  );
+
+  if (postResult[0].affectedRows <= 0) return null;
+
   const resultNewReply = await db.executeRows(
     `SELECT * FROM replies WHERE replyId = ?`,
     [newUuid]

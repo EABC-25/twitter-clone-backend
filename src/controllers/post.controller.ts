@@ -269,6 +269,8 @@ export const addReply = async (req: Request, res: Response) => {
       throw new CustomError("Empty post data received.", 404);
     }
 
+    // throw new CustomError("test error.", 400);
+
     const newReply = await addReplyToDb({
       postId: postId,
       posterName: posterName,
@@ -307,23 +309,24 @@ export const getPostReplies = async (req: Request, res: Response) => {
     }
 
     const pageNum = Number(page);
-    const limit: number = 3;
+    const limit: number = 5;
     const offset = (pageNum - 1) * limit;
     const results = await getPostRepliesFromDb(limit, offset, postId as string);
 
     console.log(results);
 
-    if (results.length <= 0) {
-      throw new CustomError("DB: No more posts to return.", 404);
-    }
+    // we should handle display of 0 reply returns in the frontend
+    // if (results.length <= 0) {
+    //   throw new CustomError("DB: No more posts to return.", 404);
+    // }
 
     let response: ResponseReplies = {
       replies: results,
       nextPage: false,
     };
 
-    if (response.replies.length > 3) {
-      response.replies = response.replies.slice(0, 3);
+    if (response.replies.length > 5) {
+      response.replies = response.replies.slice(0, 5);
       response.nextPage = true;
     } else {
       response.nextPage = false;
