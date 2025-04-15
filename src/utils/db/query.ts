@@ -170,8 +170,6 @@ export const updatePostLikesInDb = async (
     let postLikesQuery: string;
     let postQuery: string;
 
-    console.log(type, postId, userId);
-
     if (type === "add") {
       postLikesQuery = `INSERT INTO post_likes (postId, userId) VALUES (?, ?)`;
       postQuery = `UPDATE posts SET likeCount = likeCount + 1 WHERE postId = ?`;
@@ -183,15 +181,14 @@ export const updatePostLikesInDb = async (
       postId,
       userId,
     ]);
+
+    if (postLikesResult[0].affectedRows !== 1) {
+      return false;
+    }
+
     const postResult = await db.executeResult(postQuery, [postId]);
 
-    console.log(postLikesResult);
-    console.log(postResult);
-
-    if (
-      postLikesResult[0].affectedRows !== 1 &&
-      postResult[0].affectedRows !== 1
-    ) {
+    if (postResult[0].affectedRows !== 1) {
       return false;
     }
 
@@ -265,4 +262,46 @@ export const getReplyFromDb = async (
   const rows = await db.executeRows(query, [index]);
 
   return rows[0] as Reply[];
+};
+
+export const updateReplyLikesInDb = async (
+  type: string,
+  replyId: string,
+  userId: string
+): Promise<boolean> => {
+  try {
+    let replyLikesQuery: string;
+    let replyQuery: string;
+
+    // we actually will be putting reply likes in post_likes table since in the future I plan to merge post and reply as one
+    if (type === "add") {
+      replyLikesQuery = `INSERT INTO post_likes (postId, userId) VALUES (?, ?)`;
+      replyQuery = `UPDATE replies SET likeCount = likeCount + 1 WHERE replyId = ?`;
+    } else if (type === "remove") {
+      replyLikesQuery = `DELETE FROM post_likes WHERE postId = ? AND userId = ?`;
+      replyQuery = `UPDATE replies SET likeCount = GREATEST(likeCount - 1, 0) WHERE replyId = ?`;
+    }
+    const replyLikesResult = await db.executeResult(replyLikesQuery, [
+      replyId,
+      userId,
+    ]);
+
+    console.log("replyLikesResult:", replyLikesResult);
+
+    if (replyLikesResult[0].affectedRows !== 1) {
+      return false;
+    }
+
+    const replyResult = await db.executeResult(replyQuery, [replyId]);
+
+    console.log("replyResult: ", replyResult);
+
+    if (replyResult[0].affectedRows !== 1) {
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    return false;
+  }
 };

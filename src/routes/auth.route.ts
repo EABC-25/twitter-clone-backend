@@ -16,5 +16,6 @@ router.get("/checkEmail", checkEmail);
 router.post("/register", register);
 router.post("/verifyEmail", verifyEmail);
 router.post("/login", login);
+router.post("/sendEmailVerification");
 
 export default router;

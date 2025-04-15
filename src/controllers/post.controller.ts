@@ -34,6 +34,7 @@ import {
   addReplyToDb,
   getPostRepliesFromDb,
   getReplyFromDb,
+  updateReplyLikesInDb,
 } from "../utils";
 
 export const getMediaUploadSign = async (req: Request, res: Response) => {
@@ -201,12 +202,12 @@ export const addPost = async (req: Request, res: Response) => {
   }
 };
 
-export const updateLikes = async (req: Request, res: Response) => {
+export const updatePostLikes = async (req: Request, res: Response) => {
   try {
-    const { type, postId, user } = req.body;
-    console.log(type, postId, user[0].userId);
+    const { type, id, user } = req.body;
+    console.log(type, id, user[0].userId);
 
-    const result = await updatePostLikesInDb(type, postId, user[0].userId);
+    const result = await updatePostLikesInDb(type, id, user[0].userId);
 
     console.log(result);
     if (!result) {
@@ -216,7 +217,7 @@ export const updateLikes = async (req: Request, res: Response) => {
     res.status(200).json({
       success: true,
     });
-    // throw new CustomError("testError.", 404);
+    // throw new CustomError("Error testing...", 404);
   } catch (err) {
     handleError(err, res);
   }
@@ -365,6 +366,27 @@ export const getReply = async (req: Request, res: Response) => {
     // console.log("getPost ran: ", post[0]);
 
     res.status(200).json(reply[0]);
+  } catch (err) {
+    handleError(err, res);
+  }
+};
+
+export const updateReplyLikes = async (req: Request, res: Response) => {
+  try {
+    const { type, id, user } = req.body;
+    console.log(type, id, user[0].userId);
+
+    const result = await updateReplyLikesInDb(type, id, user[0].userId);
+
+    console.log(result);
+    if (!result) {
+      throw new CustomError("DB: Operation failed!", 404);
+    }
+
+    res.status(200).json({
+      success: true,
+    });
+    // throw new CustomError("Error testing...", 404);
   } catch (err) {
     handleError(err, res);
   }

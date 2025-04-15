@@ -36,6 +36,7 @@ import {
   addReplyToDb,
   getPostRepliesFromDb,
   getReplyFromDb,
+  updateReplyLikesInDb,
 } from "./db/query";
 import { sendEmail } from "./email/email";
 import cloudinaryConfig from "./config/cloudinary.config";
@@ -78,4 +79,5 @@ export {
   addReplyToDb,
   getPostRepliesFromDb,
   getReplyFromDb,
+  updateReplyLikesInDb,
 };

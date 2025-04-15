@@ -48,18 +48,56 @@ export const register = async (req: Request, res: Response) => {
   try {
     const { username, email, password, dateOfBirth } = req.body;
 
-    // we need to create regex here to check email
+    console.log(username, email, password, dateOfBirth);
+
+    // await sendEmail(req, "testToken", "testEmail");
+
+    // return;
+
+    // of course we need to block usage of existing routes... although we can actually block this at the front end instead you know...
+    if (
+      username === "landing" ||
+      username === "home" ||
+      username === "emailVerification" ||
+      username === "settings"
+    ) {
+      throw new CustomError("DB: User already exists!", 403);
+    }
+
     if (!validator.isEmail(email)) {
-      throw new CustomError("User: Invalid email!", 401);
+      throw new CustomError("User: Invalid email!", 406);
     }
 
-    // don't we also need to check username authenticity?
-    // or username collisions with route namings
+    const existingUsername = await getUserFromDb(
+      `SELECT EXISTS(SELECT 1 FROM users WHERE username = ?)`,
+      username as string
+    );
 
-    const results = await checkUserWithEmail(email);
-    if (results.length > 0) {
-      throw new CustomError("DB: User already exists!", 400);
+    const existingEmail = await getUserFromDb(
+      `SELECT EXISTS(SELECT 1 FROM users WHERE email = ?)`,
+      email as string
+    );
+
+    console.log(existingUsername);
+    console.log(Object.values(existingUsername[0]));
+
+    // in the future, we need to configure the response to also include specific codes that differentiate the existence of username or email instead of using 401, 403 or 404
+    if (
+      Object.values(existingUsername[0])[0] === 1 &&
+      Object.values(existingEmail[0])[0] === 1
+    ) {
+      throw new CustomError("DB: User and Email already exists!", 401);
     }
+
+    if (Object.values(existingUsername[0])[0] === 1) {
+      throw new CustomError("DB: User already exists!", 403);
+    }
+
+    if (Object.values(existingEmail[0])[0] === 1) {
+      throw new CustomError("DB: Email already exists!", 404);
+    }
+
+    // throw new CustomError("test", 501);
 
     const hashedPassword = await hashPassword(password);
     const { token, hashedToken, expiration } = generateVerificationToken();
@@ -74,14 +112,17 @@ export const register = async (req: Request, res: Response) => {
     };
 
     if (!(await addUserToDb(newUser))) {
-      throw new CustomError("DB: Failed to register user!", 500);
+      throw new CustomError(
+        "DB: Failed to register user!, username or email already taken or something went wrong in the server/db.",
+        500
+      );
     }
 
     if (!(await sendEmail(req, token, email))) {
       // FALLBACK: we should either make a function that makes sure email was sent, or else we delete user in db so that user can use the email again to create a new user which will then send the email
       // As long as email is sent initially - user can just click the link in the email to either finish the verification or resend email again if it fails
       // GOOD SOLUTION: or we can create a route and frontend functionality like a button or link that the user can use to resend the email... YUP THIS IS A MORE PROPER SOLUTION! WE CAN SEND EMAIL ONLY AFTER EVERY 60 SECONDS
-      throw new CustomError("Email: Email sending failed!", 500);
+      throw new CustomError("Email: Email sending failed!", 501);
     }
 
     res.status(201).json({
@@ -94,7 +135,7 @@ export const register = async (req: Request, res: Response) => {
 
 export const verifyEmail = async (req: Request, res: Response) => {
   try {
-    const { token, email } = req.query;
+    const { token, email } = req.body;
 
     if (!token) {
       throw new CustomError("User: token does not exist!", 400);
@@ -121,7 +162,7 @@ export const verifyEmail = async (req: Request, res: Response) => {
       verified: row.verified ? row.verified[0] === 1 : false,
     }));
     if (processed[0].verified) {
-      throw new CustomError("User: User is already verified!", 400);
+      throw new CustomError("User: User is already verified!", 403);
     }
 
     const userToken = processed[0].verificationToken;
@@ -152,7 +193,7 @@ export const login = async (req: Request, res: Response) => {
     const { email, password } = req.body;
 
     if (!validator.isEmail(email as string)) {
-      throw new CustomError("User: email is not a valid email!", 400);
+      throw new CustomError("User: Invalid email!", 401);
     }
 
     const results = await getUserFromDb(
@@ -170,14 +211,14 @@ export const login = async (req: Request, res: Response) => {
 
     const v = results[0].verified ? results[0].verified[0] === 1 : false;
 
-    if (!v) {
-      throw new CustomError("User: User is not yet verified!", 403);
-    }
+    // if (!v) {
+    //   throw new CustomError("User: User is not yet verified!", 403);
+    // }
 
     const isMatching = await comparePassword(password, results[0].password);
 
     if (!isMatching) {
-      throw new CustomError("User: Invalid Password!", 401);
+      throw new CustomError("User: Invalid Password!", 404);
     }
 
     const lpRes = await getUserLikedPostsFromDb(results[0].userId);
