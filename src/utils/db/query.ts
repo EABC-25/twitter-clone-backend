@@ -98,7 +98,7 @@ export const addPostToDb = async (newPost: NewPost): Promise<Post | null> => {
   const newUuid = resultId[0][0].uuid;
 
   const resultPost = await db.executeResult(
-    `INSERT INTO posts (postId, username, displayName, postText, postMedia, mediaTypes) VALUES (?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO posts (postId, username, displayName, postText, postMedia, mediaTypes, mediaPublicId) VALUES (?, ?, ?, ?, ?, ?, ?)`,
     [
       newUuid,
       newPost.username,
@@ -106,6 +106,7 @@ export const addPostToDb = async (newPost: NewPost): Promise<Post | null> => {
       newPost.postText,
       newPost.postMedia,
       newPost.mediaTypes,
+      newPost.mediaPublicId,
     ]
   );
 
@@ -121,6 +122,31 @@ export const addPostToDb = async (newPost: NewPost): Promise<Post | null> => {
   return resultNewPost[0][0] as Post;
 };
 
+export const deletePostInDb = async (postId: string): Promise<boolean> => {
+  const mediaPublicId = await db.executeResult(
+    `SELECT mediaPublicId FROM posts WHERE postId = ?`,
+    [postId]
+  );
+  const deleteResult = await db.executeResult(
+    `DELETE FROM posts WHERE postId = ?`,
+    [postId]
+  );
+  console.log(mediaPublicId);
+  console.log(deleteResult);
+  return true;
+};
+
+export const checkPostsInDb = async (): Promise<boolean> => {
+  const rows = await db.executeRows(`
+    SELECT EXISTS(SELECT 1 FROM posts);
+    `);
+
+  if (Object.values(rows[0][0])[0] === 1) {
+    return true;
+  }
+  return false;
+};
+
 export const getPostsFromDb = async (
   limit: number,
   offset: number
@@ -131,6 +157,7 @@ export const getPostsFromDb = async (
     LIMIT ${limit + 1} OFFSET ${offset}
     `);
   // adding one more to limit here so that we can signal frontend if there are more posts to retrieve after this batch through type ResponsePost.nextPage
+  console.log(rows);
   return rows[0] as Post[];
 };
 

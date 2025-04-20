@@ -27,6 +27,8 @@ import {
   cloudinaryConfig,
   signUploadForm,
   addPostToDb,
+  deletePostInDb,
+  checkPostsInDb,
   getPostsFromDb,
   getPostFromDb,
   getUserPostsFromDb,
@@ -40,7 +42,7 @@ import {
 export const getMediaUploadSign = async (req: Request, res: Response) => {
   try {
     const sig = signUploadForm();
-    console.log(sig);
+    // THIS ENDPOINT SO INSECURE BRO WE NEED TO CIRCLE BACK SOME POINT IN THE NEAR FUTURE AND FIX THIS FUNCTIONALITY
     res.status(200).json({
       signature: sig.signature,
       timestamp: sig.timestamp,
@@ -60,10 +62,24 @@ export const getHomePosts = async (req: Request, res: Response) => {
       throw new CustomError("No page received.", 404);
     }
 
+    const exists = await checkPostsInDb();
+    if (!exists) {
+      res.status(200).json({
+        posts: [],
+        nextPage: false,
+      });
+
+      return;
+    }
+
     const pageNum = Number(page);
     const limit: number = 30;
     const offset = (pageNum - 1) * limit;
     const results = await getPostsFromDb(limit, offset);
+
+    if (pageNum === 1 && results.length <= 0) {
+      console.log(results);
+    }
 
     if (results.length <= 0) {
       throw new CustomError("DB: No more posts to return.", 404);
@@ -125,6 +141,16 @@ export const getUserPosts = async (req: Request, res: Response) => {
       throw new CustomError("No username received.", 404);
     }
 
+    const exists = await checkPostsInDb();
+    if (!exists) {
+      res.status(200).json({
+        posts: [],
+        nextPage: false,
+      });
+
+      return;
+    }
+
     const pageNum = Number(page);
     const limit: number = 30;
     const offset = (pageNum - 1) * limit;
@@ -154,7 +180,7 @@ export const getUserPosts = async (req: Request, res: Response) => {
 
 export const addPost = async (req: Request, res: Response) => {
   try {
-    const { html, media, mediaTypes, user } = req.body;
+    const { html, media, mediaPublicId, mediaTypes, user } = req.body;
 
     let sanitizedHtml: string | null = null;
 
@@ -174,7 +200,8 @@ export const addPost = async (req: Request, res: Response) => {
     }
 
     const mediaStr: string | null = media.length !== 0 ? media.join(",") : null;
-
+    const mediaPublicIdStr: string | null =
+      mediaPublicId.length !== 0 ? mediaPublicId.join(",") : null;
     const mediaTypesStr: string | null =
       mediaTypes.length !== 0 ? mediaTypes.join(",") : null;
 
@@ -188,13 +215,12 @@ export const addPost = async (req: Request, res: Response) => {
       postText: sanitizedHtml,
       postMedia: mediaStr,
       mediaTypes: mediaTypesStr,
+      mediaPublicId: mediaPublicIdStr,
     });
 
     if (!newPost || newPost === null) {
       throw new CustomError("DB: Failed to save post!", 500);
     }
-
-    console.log(newPost);
 
     res.status(201).json(newPost);
   } catch (err) {
@@ -389,5 +415,32 @@ export const updateReplyLikes = async (req: Request, res: Response) => {
     // throw new CustomError("Error testing...", 404);
   } catch (err) {
     handleError(err, res);
+  }
+};
+
+export const deletePost = async (req: Request, res: Response) => {
+  try {
+    const { postId } = req.query;
+
+    const result = await deletePostInDb(postId as string);
+
+    res.status(200).json({
+      success: true,
+    });
+  } catch (err) {
+    handleError(err, res);
+  }
+};
+
+// MEDIA DELETION
+
+export const deleteMedia = async (publicId: string) => {
+  try {
+    const result = await cloudinaryConfig.uploader.destroy(publicId);
+    console.log(result);
+    return result;
+  } catch (err) {
+    console.error("Cloudinary deletion error: ", err);
+    throw err;
   }
 };

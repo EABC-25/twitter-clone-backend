@@ -36,7 +36,7 @@ export const getUserTest = async (req: Request, res: Response) => {
     const { userId } = req.query;
 
     const results = await getUserFromDb(
-      `SELECT userId, username, email, createdAt, displayName, displayNamePermanent, dateOfBirth, bioText, verified FROM users WHERE userId = ?`,
+      `SELECT userId, username, email, createdAt, displayName, displayNamePermanent, dateOfBirth, bioText, verified, profilePicture, headerPicture FROM users WHERE userId = ?`,
       userId as string
     );
 
@@ -68,6 +68,8 @@ export const getUserTest = async (req: Request, res: Response) => {
         bioText: results[0].bioText,
         verified: v,
         likedPosts: lpResMappedVals,
+        profilePicture: results[0].profilePicture,
+        headerPicture: results[0].headerPicture,
       },
     });
   } catch (err) {
@@ -87,6 +89,8 @@ export const getUser = async (req: Request, res: Response) => {
       dateOfBirth,
       bioText,
       verified,
+      profilePicture,
+      headerPicture,
     } = req.body.user[0];
 
     const dnp = displayNamePermanent ? displayNamePermanent[0] === 1 : false;
@@ -109,6 +113,8 @@ export const getUser = async (req: Request, res: Response) => {
       bioText,
       verified: v,
       likedPosts: lpResMappedVals,
+      profilePicture,
+      headerPicture,
     };
     // console.log("user: ", user);
 
@@ -131,7 +137,7 @@ export const getUserName = async (req: Request, res: Response) => {
     }
 
     const results = await getUserFromDb(
-      `SELECT username, email, createdAt, displayName, displayNamePermanent, dateOfBirth, bioText, verified FROM users WHERE username = ?`,
+      `SELECT username, email, createdAt, displayName, displayNamePermanent, dateOfBirth, bioText, verified, profilePicture, headerPicture FROM users WHERE username = ?`,
       un as string
     );
 
@@ -159,6 +165,8 @@ export const getUserName = async (req: Request, res: Response) => {
         dateOfBirth: results[0].dateOfBirth,
         bioText: results[0].bioText,
         verified: v,
+        profilePicture: results[0].profilePicture,
+        headerPicture: results[0].headerPicture,
       },
     });
   } catch (err) {

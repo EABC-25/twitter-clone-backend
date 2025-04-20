@@ -197,7 +197,7 @@ export const login = async (req: Request, res: Response) => {
     }
 
     const results = await getUserFromDb(
-      `SELECT userId, username, email, password, verified, createdAt, displayName, displayNamePermanent, dateOfBirth, bioText FROM users WHERE email = ?`,
+      `SELECT userId, username, email, password, verified, createdAt, displayName, displayNamePermanent, dateOfBirth, bioText, profilePicture, headerPicture FROM users WHERE email = ?`,
       email as string
     );
 
@@ -235,6 +235,8 @@ export const login = async (req: Request, res: Response) => {
       bioText: results[0].bioText,
       verified: v,
       likedPosts: lpResMappedVals,
+      profilePicture: results[0].profilePicture,
+      headerPicture: results[0].headerPicture,
     };
 
     sendTokenizedResponse(processed, 200, res);

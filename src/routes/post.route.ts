@@ -4,6 +4,7 @@ import {
   getMediaUploadSign,
   getHomePosts,
   addPost,
+  deletePost,
   getPost,
   getUserPosts,
   updatePostLikes,
@@ -21,6 +22,7 @@ router.get("/getHomePosts", protect, getHomePosts);
 router.get("/getPost", protect, getPost);
 router.get("/getUserPosts", protect, getUserPosts);
 router.post("/addPost", protect, addPost);
+router.delete("/deletePost", protect, deletePost);
 router.put("/likePost", protect, updatePostLikes);
 router.post("/addReply", protect, addReply);
 router.get("/getPostReplies", protect, getPostReplies);

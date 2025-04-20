@@ -14,6 +14,8 @@ interface User {
   forgotPasswordFlag: boolean;
   forgotPasswordToken: string | null;
   forgotPasswordExpire: string | null;
+  profilePicture: string | null;
+  headerPicture: string | null;
 }
 // userId, username, email, createdAt, displayName, displayNamePermanent, dateOfBirth, bioText, verified
 interface UserByToken {
@@ -43,7 +45,8 @@ interface NewPost {
   displayName: string;
   postText: string | null;
   postMedia: string | null;
-  mediaTypes: string;
+  mediaTypes: string | null;
+  mediaPublicId: string | null;
 }
 
 interface Post {
