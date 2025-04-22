@@ -122,26 +122,52 @@ export const addPostToDb = async (newPost: NewPost): Promise<Post | null> => {
   return resultNewPost[0][0] as Post;
 };
 
-export const deletePostInDb = async (postId: string): Promise<boolean> => {
-  const mediaPublicId = await db.executeResult(
-    `SELECT mediaPublicId FROM posts WHERE postId = ?`,
+export const deletePostInDb = async (
+  postId: string
+): Promise<{ mediaPublicId: string; mediaTypes: string } | null> => {
+  const mediaResult = await db.executeResult(
+    `SELECT mediaPublicId, mediaTypes FROM posts WHERE postId = ?`,
     [postId]
   );
-  const deleteResult = await db.executeResult(
+  const deletePost = await db.executeResult(
     `DELETE FROM posts WHERE postId = ?`,
     [postId]
   );
-  console.log(mediaPublicId);
-  console.log(deleteResult);
-  return true;
+
+  const deleteReply = Promise.resolve(
+    db.executeResult(`DELETE FROM replies WHERE postId = ?`, [postId])
+  );
+
+  const deleteLikes = Promise.resolve(
+    db.executeResult(`DELETE FROM post_likes WHERE postId = ?`, [postId])
+  );
+
+  Promise.all([deleteReply, deleteLikes]).then(_ => {
+    // console.log(values);
+  });
+
+  if (deletePost[0].affectedRows >= 1) {
+    return mediaResult[0][0];
+  }
+  return null;
 };
 
-export const checkPostsInDb = async (): Promise<boolean> => {
-  const rows = await db.executeRows(`
+export const checkPostsInDb = async (username?: string): Promise<boolean> => {
+  const query = `SELECT EXISTS(SELECT 1 FROM posts${
+    username && " WHERE username = ?"
+  })`;
+
+  let result: [RowDataPacket[], any] | undefined;
+
+  if (!username) {
+    result = await db.executeRows(`
     SELECT EXISTS(SELECT 1 FROM posts);
     `);
+  } else {
+    result = await db.executeRows(query, [username]);
+  }
 
-  if (Object.values(rows[0][0])[0] === 1) {
+  if (Object.values(result[0][0])[0] === 1) {
     return true;
   }
   return false;
@@ -157,7 +183,7 @@ export const getPostsFromDb = async (
     LIMIT ${limit + 1} OFFSET ${offset}
     `);
   // adding one more to limit here so that we can signal frontend if there are more posts to retrieve after this batch through type ResponsePost.nextPage
-  console.log(rows);
+  // console.log(rows);
   return rows[0] as Post[];
 };
 
@@ -331,4 +357,23 @@ export const updateReplyLikesInDb = async (
   } catch (err) {
     return false;
   }
+};
+
+// NEED TO REFACTOR ALL QUERIES TO A SINGLE FUNCTION THAT CAN TAKE IN QUERY AND QUERY PARAMS AS ARGS FOR DRY LIKE THE BELOW
+
+// CATEGORIZE FOR SINGLE TO MULTIPLE QPS???
+
+export const runSingleQueryAndParams = async (
+  q: string,
+  qp: string
+): Promise<boolean> => {
+  const result = await db.executeResult(q, [qp]);
+
+  console.log(result);
+
+  if (result[0].affectedRows < 1) {
+    return false;
+  }
+
+  return true;
 };

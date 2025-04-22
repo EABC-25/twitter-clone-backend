@@ -1,6 +1,7 @@
 import { type Request, type Response, type NextFunction } from "express";
 import validator from "validator";
 import sanitizeHtml from "sanitize-html";
+import { v2 as cloudinary } from "cloudinary";
 import {
   type User,
   type NewUser,
@@ -41,11 +42,11 @@ import {
 
 export const getMediaUploadSign = async (req: Request, res: Response) => {
   try {
-    const sig = signUploadForm();
+    const mediaSign = signUploadForm();
     // THIS ENDPOINT SO INSECURE BRO WE NEED TO CIRCLE BACK SOME POINT IN THE NEAR FUTURE AND FIX THIS FUNCTIONALITY
     res.status(200).json({
-      signature: sig.signature,
-      timestamp: sig.timestamp,
+      signature: mediaSign.signature,
+      timestamp: mediaSign.timestamp,
       cloudname: cloudinaryConfig.cloud_name,
       apiKey: cloudinaryConfig.api_key,
     });
@@ -141,7 +142,7 @@ export const getUserPosts = async (req: Request, res: Response) => {
       throw new CustomError("No username received.", 404);
     }
 
-    const exists = await checkPostsInDb();
+    const exists = await checkPostsInDb(username as string);
     if (!exists) {
       res.status(200).json({
         posts: [],
@@ -421,8 +422,23 @@ export const updateReplyLikes = async (req: Request, res: Response) => {
 export const deletePost = async (req: Request, res: Response) => {
   try {
     const { postId } = req.query;
+    // we checked the user via cookie-jwt in protect but how sure are we that the user deleting is the owner of the post once the request lands here? is it possible to bypass our protected route??? should we perform db check for user here???
 
+    // likes and replies also already handled for deletion inside below function
     const result = await deletePostInDb(postId as string);
+
+    if (!result || result === null) {
+      throw new CustomError("DB: Operation failed!", 403);
+    }
+
+    if (result.mediaPublicId !== null && result.mediaTypes !== null) {
+      const idParts = result.mediaPublicId.split(",");
+      const typeParts = result.mediaTypes.split(",");
+
+      for (let i = 0; i < Math.max(idParts.length, typeParts.length); i++) {
+        await deleteMedia(idParts[i], typeParts[i]);
+      }
+    }
 
     res.status(200).json({
       success: true,
@@ -434,10 +450,13 @@ export const deletePost = async (req: Request, res: Response) => {
 
 // MEDIA DELETION
 
-export const deleteMedia = async (publicId: string) => {
+export const deleteMedia = async (publicId: string, type: string) => {
   try {
-    const result = await cloudinaryConfig.uploader.destroy(publicId);
-    console.log(result);
+    const result = await cloudinary.uploader.destroy(publicId, {
+      resource_type: type,
+      invalidate: true,
+    });
+    console.log("Deleted: ", result);
     return result;
   } catch (err) {
     console.error("Cloudinary deletion error: ", err);

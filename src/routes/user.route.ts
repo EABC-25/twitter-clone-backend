@@ -6,6 +6,7 @@ import {
   getUserTest,
   getUserName,
   deleteUser,
+  updateUserProfile,
 } from "../controllers/user.controller";
 import { protect } from "../middlewares/auth/auth";
 
@@ -15,6 +16,7 @@ router.get("/getUsers", getUsers);
 router.get("/getUser", protect, getUser);
 router.get("/getUser/test", getUserTest);
 router.get("/getUserName", protect, getUserName);
-router.delete("/deleteUser", deleteUser);
+router.delete("/deleteUser", protect, deleteUser);
+router.patch("/updateUserProfile", protect, updateUserProfile);
 
 export default router;

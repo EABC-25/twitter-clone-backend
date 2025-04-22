@@ -11,6 +11,8 @@ import {
   generateVerificationToken,
   generateHashedToken,
   sendEmail,
+  signUploadForm,
+  cloudinaryConfig,
   getUsersFromDb,
   getUserFromDb,
   getUserLikedPostsFromDb,
@@ -176,7 +178,7 @@ export const getUserName = async (req: Request, res: Response) => {
 
 export const deleteUser = async (req: Request, res: Response) => {
   try {
-    // we need to pass cookie token here, but for now email will suffice..
+    // we need to pass cookie token here, but for this test email will suffice..
     const { email } = req.body;
     if (!(await deleteUserFromDb(email))) {
       throw new CustomError("DB: User not found!", 404);
@@ -187,5 +189,99 @@ export const deleteUser = async (req: Request, res: Response) => {
     });
   } catch (err) {
     handleError(err, res);
+  }
+};
+
+export const updateUserProfile = async (req: Request, res: Response) => {
+  try {
+    const { updates, user } = req.body;
+
+    //  profilePicture: null | File;
+    //  headerPicture: null | File;
+    //  displayName: null | string;
+    //  bioText: null | string;
+    //  dateOfBirth: null | string;
+    //  email: string;
+
+    if (updates.email !== user[0].email) {
+      throw new CustomError("Unauthorized access!", 401);
+    }
+
+    //upload media
+    // const mediaSign = signUploadForm();
+
+    if (updates.profilePicture) {
+    }
+
+    if (updates.headerPicture) {
+    }
+
+    //push to db
+
+    let updateKeys: string[] = [];
+    let updateValues: string[] = [];
+    let updateStr: string = "";
+
+    Object.keys(updates)
+      .slice(0, 5)
+      .forEach(v => {
+        console.log(updates[v]);
+        if (updates[v] !== null) {
+          updateValues.push(updates[v]);
+          updateKeys.push(` ${v} = ?`);
+        }
+      });
+
+    console.log(updateKeys);
+
+    updateStr = updateKeys.join(",");
+
+    console.log(updateStr);
+    console.log(updateValues);
+    let query: string = `UPDATE users SET ${""}`;
+    let queryParams: string[] = [];
+
+    //revert if unsuccessful
+
+    res.status(200).json({
+      user: { ...updates },
+    });
+  } catch (err) {
+    handleError(err, res);
+  }
+};
+
+export const uploadMedia = async (
+  mediaSign: { timestamp: number; signature: string },
+  file: File,
+  fileType: string
+): Promise<any> => {
+  try {
+    const formData = new FormData();
+
+    const urlParts = process.env.CLOUDINARY_API_URL.split("$");
+
+    const url =
+      urlParts[0] + cloudinaryConfig.cloudname + "/" + fileType + urlParts[1];
+
+    formData.append("file", file);
+    formData.append("api_key", cloudinaryConfig.apiKey);
+    formData.append("timestamp", mediaSign.timestamp.toString());
+    formData.append("signature", mediaSign.signature);
+    formData.append("folder", process.env.CLOUDINARY_FOLDER_NAME);
+
+    const res = await fetch(url, {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!res.ok) {
+      throw new Error(`Upload failed: ${res.statusText}`);
+    }
+
+    const data = await res.json();
+    return data;
+  } catch (err) {
+    throw err;
   }
 };

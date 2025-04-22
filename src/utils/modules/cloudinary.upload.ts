@@ -9,7 +9,7 @@ const signUploadForm = () => {
   const signature = cloudinary.utils.api_sign_request(
     {
       timestamp: timestamp,
-      folder: "twitter_clone",
+      folder: process.env.CLOUDINARY_FOLDER_NAME,
     },
     apiSecret
   );
