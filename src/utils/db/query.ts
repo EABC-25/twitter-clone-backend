@@ -82,6 +82,19 @@ export const addUserToDb = async (newUser: NewUser): Promise<boolean> => {
   return false;
 };
 
+export const updateUserInDb = async (
+  query: string,
+  queryParams: string[]
+): Promise<boolean> => {
+  const results = await db.executeResult(query, queryParams);
+
+  if (results[0].affectedRows === 0) {
+    return false;
+  }
+
+  return true;
+};
+
 export const deleteUserFromDb = async (email: string): Promise<boolean> => {
   const rows = await db.executeResult(`DELETE FROM users WHERE email = ?`, [
     email,
@@ -98,11 +111,10 @@ export const addPostToDb = async (newPost: NewPost): Promise<Post | null> => {
   const newUuid = resultId[0][0].uuid;
 
   const resultPost = await db.executeResult(
-    `INSERT INTO posts (postId, username, displayName, postText, postMedia, mediaTypes, mediaPublicId) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO posts (postId, userId, postText, postMedia, mediaTypes, mediaPublicId) VALUES (?, ?, ?, ?, ?, ?)`,
     [
       newUuid,
-      newPost.username,
-      newPost.displayName,
+      newPost.userId,
       newPost.postText,
       newPost.postMedia,
       newPost.mediaTypes,
@@ -113,7 +125,7 @@ export const addPostToDb = async (newPost: NewPost): Promise<Post | null> => {
   if (resultPost[0].affectedRows <= 0) return null;
 
   const resultNewPost = await db.executeRows(
-    `SELECT * FROM posts WHERE postId = ?`,
+    `SELECT posts.postId, posts.createdAt, posts.postText, posts.postMedia, posts.mediaTypes, posts.likeCount, posts.replyCount, users.username, users.displayName, users.profilePicture FROM posts JOIN users WHERE posts.userId = users.userId AND posts.postId = ?`,
     [newUuid]
   );
 
@@ -152,19 +164,33 @@ export const deletePostInDb = async (
   return null;
 };
 
-export const checkPostsInDb = async (username?: string): Promise<boolean> => {
+export const checkPostInDb = async (postId: string): Promise<boolean> => {
+  const result = await db.executeRows(
+    `
+    SELECT EXISTS(SELECT 1 FROM posts WHERE postId = ?)
+    `,
+    [postId]
+  );
+
+  if (Object.values(result[0][0])[0] === 1) {
+    return true;
+  }
+  return false;
+};
+
+export const checkPostsInDb = async (userId?: string): Promise<boolean> => {
   const query = `SELECT EXISTS(SELECT 1 FROM posts${
-    username && " WHERE username = ?"
+    userId && " WHERE userId = ?"
   })`;
 
   let result: [RowDataPacket[], any] | undefined;
 
-  if (!username) {
+  if (!userId) {
     result = await db.executeRows(`
     SELECT EXISTS(SELECT 1 FROM posts);
     `);
   } else {
-    result = await db.executeRows(query, [username]);
+    result = await db.executeRows(query, [userId]);
   }
 
   if (Object.values(result[0][0])[0] === 1) {
@@ -177,11 +203,11 @@ export const getPostsFromDb = async (
   limit: number,
   offset: number
 ): Promise<Post[]> => {
-  const rows = await db.executeRows(`
-    SELECT * FROM posts
-    ORDER BY createdAt DESC
-    LIMIT ${limit + 1} OFFSET ${offset}
-    `);
+  const rows = await db.executeRows(
+    `SELECT posts.postId, posts.createdAt, posts.postText, posts.postMedia, posts.mediaTypes, posts.likeCount, posts.replyCount, users.username, users.displayName, users.profilePicture FROM posts JOIN users WHERE posts.userId = users.userId ORDER BY createdAt DESC
+    LIMIT ${limit + 1} OFFSET ${offset}`
+  );
+
   // adding one more to limit here so that we can signal frontend if there are more posts to retrieve after this batch through type ResponsePost.nextPage
   // console.log(rows);
   return rows[0] as Post[];
@@ -199,16 +225,15 @@ export const getPostFromDb = async (
 export const getUserPostsFromDb = async (
   limit: number,
   offset: number,
-  username: string
+  userId: string
 ): Promise<Post[]> => {
   const rows = await db.executeRows(
     `
-    SELECT * FROM posts
-    WHERE username = ?
+    SELECT posts.postId, posts.createdAt, posts.postText, posts.postMedia, posts.mediaTypes, posts.likeCount, posts.replyCount, users.username, users.displayName, users.profilePicture FROM posts JOIN users WHERE posts.userId = users.userId AND posts.userId = ?
     ORDER BY createdAt DESC
     LIMIT ${limit + 1} OFFSET ${offset}
     `,
-    [username]
+    [userId]
   );
   // adding one more to limit here so that we can signal frontend if there are more posts to retrieve after this batch through type ResponsePost.nextPage
   return rows[0] as Post[];
@@ -259,13 +284,12 @@ export const addReplyToDb = async (
   const newUuid = resultId[0][0].uuid;
 
   const resultReply = await db.executeResult(
-    `INSERT INTO replies (replyId, postId, posterName, username, displayName, postText) VALUES (?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO replies (replyId, postId, replierId, posterId, postText) VALUES (?, ?, ?, ?, ?)`,
     [
       newUuid,
       newReply.postId,
-      newReply.posterName,
-      newReply.username,
-      newReply.displayName,
+      newReply.replierId,
+      newReply.posterId,
       newReply.postText,
     ]
   );
@@ -280,7 +304,20 @@ export const addReplyToDb = async (
   if (postResult[0].affectedRows <= 0) return null;
 
   const resultNewReply = await db.executeRows(
-    `SELECT * FROM replies WHERE replyId = ?`,
+    `SELECT 
+        replies.replyId, 
+        replies.postId, 
+        u1.username AS replierUserName, 
+        u1.displayName AS replierDisplayName, 
+        u2.username AS posterUserName, 
+        replies.createdAt, 
+        replies.postText, 
+        replies.likeCount, 
+        replies.replyCount 
+      FROM replies 
+      JOIN users AS u1 ON replies.replierId = u1.userId
+      JOIN users AS u2 ON replies.posterId = u2.userId
+      WHERE replies.replyId = ?`,
     [newUuid]
   );
 

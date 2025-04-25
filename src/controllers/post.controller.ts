@@ -1,34 +1,18 @@
 import { type Request, type Response, type NextFunction } from "express";
-import validator from "validator";
 import sanitizeHtml from "sanitize-html";
-import { v2 as cloudinary } from "cloudinary";
 import {
-  type User,
-  type NewUser,
-  type CookieOptions,
-  type NewPost,
-  type Post,
   type ResponsePosts,
   type ResponsePost,
   type ResponseReplies,
   CustomError,
   handleError,
-  comparePassword,
-  hashPassword,
-  generateVerificationToken,
-  generateHashedToken,
-  sendEmail,
-  getUsersFromDb,
   getUserFromDb,
-  checkUserWithEmail,
-  addUserToDb,
-  deleteUserFromDb,
-  verifyUserInDb,
-  generateJWToken,
   cloudinaryConfig,
   signUploadForm,
+  deleteMedia,
   addPostToDb,
   deletePostInDb,
+  checkPostInDb,
   checkPostsInDb,
   getPostsFromDb,
   getPostFromDb,
@@ -43,12 +27,13 @@ import {
 export const getMediaUploadSign = async (req: Request, res: Response) => {
   try {
     const mediaSign = signUploadForm();
-    // THIS ENDPOINT SO INSECURE BRO WE NEED TO CIRCLE BACK SOME POINT IN THE NEAR FUTURE AND FIX THIS FUNCTIONALITY
+    // THIS ENDPOINT FUNCTION SO INSECURE BRO WE NEED TO CIRCLE BACK SOME POINT IN THE NEAR FUTURE AND FIX THIS FUNCTIONALITY??
     res.status(200).json({
       signature: mediaSign.signature,
       timestamp: mediaSign.timestamp,
       cloudname: cloudinaryConfig.cloud_name,
       apiKey: cloudinaryConfig.api_key,
+      folder: process.env.CLOUDINARY_FOLDER_NAME,
     });
   } catch (err) {
     handleError(err, res);
@@ -113,7 +98,7 @@ export const getPost = async (req: Request, res: Response) => {
     }
 
     const post = await getPostFromDb(
-      "SELECT * FROM posts WHERE postId = ?",
+      `SELECT posts.postId, posts.createdAt, posts.postText, posts.postMedia, posts.mediaTypes, posts.likeCount, posts.replyCount, users.username, users.displayName, users.profilePicture FROM posts JOIN users WHERE posts.userId = users.userId AND postId = ?`,
       postId as string
     );
 
@@ -121,10 +106,10 @@ export const getPost = async (req: Request, res: Response) => {
       throw new CustomError("DB: post not found.", 404);
     }
 
-    const response: ResponsePost = {
-      post: post[0],
-      reacts: null,
-    };
+    // const response: ResponsePost = {
+    //   post: post[0],
+    //   reacts: null,
+    // };
 
     // console.log("getPost ran: ", post[0]);
 
@@ -142,7 +127,15 @@ export const getUserPosts = async (req: Request, res: Response) => {
       throw new CustomError("No username received.", 404);
     }
 
-    const exists = await checkPostsInDb(username as string);
+    const userId = await getUserFromDb(
+      `SELECT userId FROM users WHERE username = ?`,
+      username as string
+    );
+    if (!userId.length) {
+      throw new CustomError("DB: Resource not found..", 400);
+    }
+
+    const exists = await checkPostsInDb(userId[0].userId as string);
     if (!exists) {
       res.status(200).json({
         posts: [],
@@ -155,11 +148,11 @@ export const getUserPosts = async (req: Request, res: Response) => {
     const pageNum = Number(page);
     const limit: number = 30;
     const offset = (pageNum - 1) * limit;
-    const results = await getUserPostsFromDb(limit, offset, username as string);
-
-    if (results.length <= 0) {
-      throw new CustomError("DB: No more posts to return.", 404);
-    }
+    const results = await getUserPostsFromDb(
+      limit,
+      offset,
+      userId[0].userId as string
+    );
 
     let response: ResponsePosts = {
       posts: results,
@@ -211,8 +204,7 @@ export const addPost = async (req: Request, res: Response) => {
     }
 
     const newPost = await addPostToDb({
-      username: user[0].username,
-      displayName: user[0].displayName,
+      userId: user[0].userId,
       postText: sanitizedHtml,
       postMedia: mediaStr,
       mediaTypes: mediaTypesStr,
@@ -252,25 +244,12 @@ export const updatePostLikes = async (req: Request, res: Response) => {
 
 export const addReply = async (req: Request, res: Response) => {
   try {
-    const { html, postId, posterName, user } = req.body;
-
-    // we need to check if postId and posterName exists in the database
-    const resUser = await getUserFromDb(
-      `SELECT EXISTS(SELECT 1 FROM users WHERE username = ?)`,
-      posterName as string
-    );
+    const { html, postId, user } = req.body;
 
     const resPost = await getPostFromDb(
-      "SELECT EXISTS(SELECT 1 FROM posts WHERE postId = ?)",
+      "SELECT userId FROM posts WHERE postId = ?",
       postId as string
     );
-
-    console.log("resUser: ", resUser);
-    console.log("resPost: ", resPost);
-
-    if (resUser.length <= 0) {
-      throw new CustomError("DB: Poster account not found!", 404);
-    }
 
     if (resPost.length <= 0) {
       throw new CustomError("DB: Post not found!", 404);
@@ -301,9 +280,8 @@ export const addReply = async (req: Request, res: Response) => {
 
     const newReply = await addReplyToDb({
       postId: postId,
-      posterName: posterName,
-      username: user[0].username,
-      displayName: user[0].displayName,
+      replierId: user[0].userId,
+      posterId: resPost[0].userId,
       postText: sanitizedHtml,
     });
 
@@ -341,7 +319,7 @@ export const getPostReplies = async (req: Request, res: Response) => {
     const offset = (pageNum - 1) * limit;
     const results = await getPostRepliesFromDb(limit, offset, postId as string);
 
-    console.log(results);
+    // console.log(results);
 
     // we should handle display of 0 reply returns in the frontend
     // if (results.length <= 0) {
@@ -360,7 +338,7 @@ export const getPostReplies = async (req: Request, res: Response) => {
       response.nextPage = false;
     }
 
-    console.log(response);
+    // console.log(response);
 
     res.status(200).json(response);
   } catch (err) {
@@ -445,21 +423,5 @@ export const deletePost = async (req: Request, res: Response) => {
     });
   } catch (err) {
     handleError(err, res);
-  }
-};
-
-// MEDIA DELETION
-
-export const deleteMedia = async (publicId: string, type: string) => {
-  try {
-    const result = await cloudinary.uploader.destroy(publicId, {
-      resource_type: type,
-      invalidate: true,
-    });
-    console.log("Deleted: ", result);
-    return result;
-  } catch (err) {
-    console.error("Cloudinary deletion error: ", err);
-    throw err;
   }
 };

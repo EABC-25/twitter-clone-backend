@@ -3,18 +3,34 @@ import cloudinaryConfig from "../config/cloudinary.config";
 
 const apiSecret = cloudinaryConfig.api_secret;
 
-const signUploadForm = () => {
-  const timestamp = Math.round(new Date().getTime() / 1000);
+export const signUploadForm = () => {
+  try {
+    const timestamp = Math.round(new Date().getTime() / 1000);
 
-  const signature = cloudinary.utils.api_sign_request(
-    {
-      timestamp: timestamp,
-      folder: process.env.CLOUDINARY_FOLDER_NAME,
-    },
-    apiSecret
-  );
+    const signature = cloudinary.utils.api_sign_request(
+      {
+        timestamp: timestamp,
+        folder: process.env.CLOUDINARY_FOLDER_NAME,
+      },
+      apiSecret
+    );
 
-  return { timestamp, signature };
+    return { timestamp, signature };
+  } catch (err) {
+    throw err;
+  }
 };
 
-export default signUploadForm;
+export const deleteMedia = async (publicId: string, type: string) => {
+  try {
+    const result = await cloudinary.uploader.destroy(publicId, {
+      resource_type: type,
+      invalidate: true,
+    });
+    console.log("Deleted: ", result);
+    return result;
+  } catch (err) {
+    console.error("Cloudinary deletion error: ", err);
+    throw err;
+  }
+};

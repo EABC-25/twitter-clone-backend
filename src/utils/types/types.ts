@@ -41,8 +41,7 @@ interface NewUser {
 }
 
 interface NewPost {
-  username: string;
-  displayName: string;
+  userId: string;
   postText: string | null;
   postMedia: string | null;
   mediaTypes: string | null;
@@ -53,12 +52,14 @@ interface Post {
   postId: string;
   username: string;
   displayName: string;
+  profilePicture: string | null;
   createdAt: string;
   postText: string | null;
   postMedia: string | null;
   mediaTypes: string;
   likeCount: number;
   replyCount: number;
+  userId?: string;
 }
 
 interface ResponsePosts {
@@ -86,18 +87,17 @@ interface CookieOptions {
 
 interface NewReply {
   postId: string;
-  posterName: string;
-  username: string;
-  displayName: string;
+  replierId: string;
+  posterId: string;
   postText: string | null;
 }
 
 interface Reply {
   replyId: string;
   postId: string;
-  posterName: string;
-  username: string;
-  displayName: string;
+  replierUserName: string;
+  replierDisplayName: string;
+  posterUserName: string;
   createdAt: string;
   postText: string;
   likeCount: number;

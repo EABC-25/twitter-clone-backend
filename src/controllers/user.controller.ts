@@ -12,12 +12,14 @@ import {
   generateHashedToken,
   sendEmail,
   signUploadForm,
+  deleteMedia,
   cloudinaryConfig,
   getUsersFromDb,
   getUserFromDb,
   getUserLikedPostsFromDb,
   checkUserWithEmail,
   addUserToDb,
+  updateUserInDb,
   deleteUserFromDb,
   verifyUserInDb,
   generateJWToken,
@@ -196,92 +198,72 @@ export const updateUserProfile = async (req: Request, res: Response) => {
   try {
     const { updates, user } = req.body;
 
-    //  profilePicture: null | File;
-    //  headerPicture: null | File;
-    //  displayName: null | string;
-    //  bioText: null | string;
-    //  dateOfBirth: null | string;
-    //  email: string;
+    const updatesCopy: {
+      profilePicture: null | string;
+      headerPicture: null | string;
+      mediaPublicId: string[];
+      displayName: null | string;
+      bioText: null | string;
+      dateOfBirth: null | string;
+      email: string;
+    } = { ...updates };
 
-    if (updates.email !== user[0].email) {
+    if (updatesCopy.email !== user[0].email) {
       throw new CustomError("Unauthorized access!", 401);
     }
 
-    //upload media
-    // const mediaSign = signUploadForm();
-
-    if (updates.profilePicture) {
-    }
-
-    if (updates.headerPicture) {
-    }
-
-    //push to db
+    console.log(updatesCopy);
+    // this is just so that we can delete media uploaded if everything fails..
+    const hpId: string | null =
+      updatesCopy.headerPicture && updates.mediaPublicId.pop();
+    const ppId: string | null =
+      updatesCopy.profilePicture && updates.mediaPublicId.pop();
 
     let updateKeys: string[] = [];
     let updateValues: string[] = [];
     let updateStr: string = "";
 
-    Object.keys(updates)
-      .slice(0, 5)
+    Object.keys(updatesCopy)
+      .slice(0, 6) // remove email
       .forEach(v => {
-        console.log(updates[v]);
-        if (updates[v] !== null) {
-          updateValues.push(updates[v]);
-          updateKeys.push(` ${v} = ?`);
+        if (updatesCopy[v] !== null) {
+          const u: string = !(updatesCopy[v] instanceof Array)
+            ? updatesCopy[v]
+            : updatesCopy[v].length !== 0
+            ? updatesCopy[v].join(",")
+            : "";
+
+          if (u) {
+            updateValues.push(u);
+            updateKeys.push(` ${v} = ?`);
+          }
         }
       });
 
-    console.log(updateKeys);
-
     updateStr = updateKeys.join(",");
 
-    console.log(updateStr);
-    console.log(updateValues);
-    let query: string = `UPDATE users SET ${""}`;
-    let queryParams: string[] = [];
+    let query: string = `UPDATE users SET${updateStr} WHERE userId = ?`;
 
-    //revert if unsuccessful
+    if (!(await updateUserInDb(query, [...updateValues, user[0].userId]))) {
+      //revert media upload if unsuccessful
+      if (updatesCopy.profilePicture) {
+        await deleteMedia(ppId, "image");
+      }
+
+      if (updatesCopy.headerPicture) {
+        await deleteMedia(hpId, "image");
+      }
+
+      throw new CustomError(
+        "Something went wrong.. please try again later",
+        500
+      );
+    }
 
     res.status(200).json({
       user: { ...updates },
     });
   } catch (err) {
     handleError(err, res);
-  }
-};
-
-export const uploadMedia = async (
-  mediaSign: { timestamp: number; signature: string },
-  file: File,
-  fileType: string
-): Promise<any> => {
-  try {
-    const formData = new FormData();
-
-    const urlParts = process.env.CLOUDINARY_API_URL.split("$");
-
-    const url =
-      urlParts[0] + cloudinaryConfig.cloudname + "/" + fileType + urlParts[1];
-
-    formData.append("file", file);
-    formData.append("api_key", cloudinaryConfig.apiKey);
-    formData.append("timestamp", mediaSign.timestamp.toString());
-    formData.append("signature", mediaSign.signature);
-    formData.append("folder", process.env.CLOUDINARY_FOLDER_NAME);
-
-    const res = await fetch(url, {
-      method: "POST",
-      body: formData,
-    });
-
-    if (!res.ok) {
-      throw new Error(`Upload failed: ${res.statusText}`);
-    }
-
-    const data = await res.json();
-    return data;
-  } catch (err) {
-    throw err;
   }
 };

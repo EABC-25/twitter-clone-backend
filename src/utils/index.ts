@@ -25,10 +25,12 @@ import {
   getUserFromDb,
   checkUserWithEmail,
   addUserToDb,
+  updateUserInDb,
   deleteUserFromDb,
   verifyUserInDb,
   addPostToDb,
   deletePostInDb,
+  checkPostInDb,
   checkPostsInDb,
   getPostsFromDb,
   getPostFromDb,
@@ -42,7 +44,7 @@ import {
 } from "./db/query";
 import { sendEmail } from "./email/email";
 import cloudinaryConfig from "./config/cloudinary.config";
-import signUploadForm from "./modules/cloudinary.upload";
+import { signUploadForm, deleteMedia } from "./modules/cloudinary.upload";
 
 export {
   type User,
@@ -68,12 +70,15 @@ export {
   getUserFromDb,
   checkUserWithEmail,
   addUserToDb,
+  updateUserInDb,
   deleteUserFromDb,
   verifyUserInDb,
   cloudinaryConfig,
   signUploadForm,
+  deleteMedia,
   addPostToDb,
   deletePostInDb,
+  checkPostInDb,
   checkPostsInDb,
   getPostsFromDb,
   getPostFromDb,
