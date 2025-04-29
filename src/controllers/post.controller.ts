@@ -22,6 +22,7 @@ import {
   getPostRepliesFromDb,
   getReplyFromDb,
   updateReplyLikesInDb,
+  deleteReplyInDb,
 } from "../utils";
 
 export const getMediaUploadSign = async (req: Request, res: Response) => {
@@ -302,7 +303,7 @@ export const getPostReplies = async (req: Request, res: Response) => {
     const { postId, page } = req.query;
 
     if (!page || !postId) {
-      throw new CustomError("Insufficient query received.", 404);
+      throw new CustomError("DB: Operation failed!.", 404);
     }
 
     const resPost = await getPostFromDb(
@@ -319,26 +320,21 @@ export const getPostReplies = async (req: Request, res: Response) => {
     const offset = (pageNum - 1) * limit;
     const results = await getPostRepliesFromDb(limit, offset, postId as string);
 
-    // console.log(results);
-
-    // we should handle display of 0 reply returns in the frontend
-    // if (results.length <= 0) {
-    //   throw new CustomError("DB: No more posts to return.", 404);
-    // }
+    // results.length === 0 will send back empty array
 
     let response: ResponseReplies = {
       replies: results,
       nextPage: false,
+      nextPageCount: 0,
     };
 
     if (response.replies.length > 5) {
       response.replies = response.replies.slice(0, 5);
       response.nextPage = true;
+      response.nextPageCount = Number(page) + 1;
     } else {
       response.nextPage = false;
     }
-
-    // console.log(response);
 
     res.status(200).json(response);
   } catch (err) {
@@ -355,20 +351,27 @@ export const getReply = async (req: Request, res: Response) => {
     }
 
     const reply = await getReplyFromDb(
-      "SELECT * FROM replies WHERE replyId = ?",
+      `SELECT 
+        replies.replyId, 
+        replies.postId, 
+        u1.username AS replierUserName, 
+        u1.displayName AS replierDisplayName, 
+        u1.profilePicture AS replierProfilePicture, 
+        u2.username AS posterUserName, 
+        replies.createdAt, 
+        replies.postText, 
+        replies.likeCount, 
+        replies.replyCount 
+      FROM replies 
+      JOIN users AS u1 ON replies.replierId = u1.userId
+      JOIN users AS u2 ON replies.posterId = u2.userId
+      WHERE replies.replyId = ?`,
       replyId as string
     );
 
     if (reply.length <= 0) {
       throw new CustomError("DB: reply not found.", 404);
     }
-
-    // const response: ResponsePost = {
-    //   reply: reply[0],
-    //   reacts: null,
-    // };
-
-    // console.log("getPost ran: ", post[0]);
 
     res.status(200).json(reply[0]);
   } catch (err) {
@@ -416,6 +419,22 @@ export const deletePost = async (req: Request, res: Response) => {
       for (let i = 0; i < Math.max(idParts.length, typeParts.length); i++) {
         await deleteMedia(idParts[i], typeParts[i]);
       }
+    }
+
+    res.status(200).json({
+      success: true,
+    });
+  } catch (err) {
+    handleError(err, res);
+  }
+};
+
+export const deleteReply = async (req: Request, res: Response) => {
+  try {
+    const { replyId } = req.query;
+
+    if (!(await deleteReplyInDb(replyId as string))) {
+      throw new CustomError("DB: Operation failed!", 500);
     }
 
     res.status(200).json({

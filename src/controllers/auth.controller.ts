@@ -20,6 +20,7 @@ import {
   deleteUserFromDb,
   verifyUserInDb,
   generateJWToken,
+  getUserFollowsCountFromDb,
 } from "../utils";
 
 export const checkToken = async (req: Request, res: Response) => {
@@ -224,19 +225,27 @@ export const login = async (req: Request, res: Response) => {
     const lpRes = await getUserLikedPostsFromDb(results[0].userId);
     const lpResMappedVals: string[] = lpRes.map(obj => obj.postId);
 
+    const userFollowsCount = await getUserFollowsCountFromDb(results[0].userId);
+
     const processed = {
       userId: results[0].userId,
       username: results[0].username,
       email: results[0].email,
-      createdAt: results[0].createdAt,
+      dates: {
+        createdAt: results[0].createdAt,
+        createdAtShort: "",
+        dateOfBirth: results[0].dateOfBirth,
+        dateOfBirthShort: "",
+        dateOfBirthNum: "",
+      },
       displayName: results[0].displayName,
       displayNamePermanent: dnp,
-      dateOfBirth: results[0].dateOfBirth,
       bioText: results[0].bioText,
       verified: v,
       likedPosts: lpResMappedVals,
       profilePicture: results[0].profilePicture,
       headerPicture: results[0].headerPicture,
+      userFollowsCount: userFollowsCount,
     };
 
     sendTokenizedResponse(processed, 200, res);

@@ -12,6 +12,7 @@ import {
   getPostReplies,
   getReply,
   updateReplyLikes,
+  deleteReply,
 } from "../controllers/post.controller";
 import { protect } from "../middlewares/auth/auth";
 
@@ -26,7 +27,9 @@ router.delete("/deletePost", protect, deletePost);
 router.put("/likePost", protect, updatePostLikes);
 router.post("/addReply", protect, addReply);
 router.get("/getPostReplies", protect, getPostReplies);
+router.post("/getMorePostReplies", protect, getPostReplies);
 router.get("/getReply", protect, getReply);
+router.delete("/deleteReply", protect, deleteReply);
 router.put("/likeReply", protect, updateReplyLikes);
 
 export default router;

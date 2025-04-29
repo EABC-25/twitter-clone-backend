@@ -40,6 +40,14 @@ interface NewUser {
   verificationExpire: number | null;
 }
 
+interface UpdatedUser {
+  profilePicture: string | null;
+  headerPicture: string | null;
+  displayName: string;
+  bioText: string | null;
+  dateOfBirth: string;
+}
+
 interface NewPost {
   userId: string;
   postText: string | null;
@@ -97,6 +105,7 @@ interface Reply {
   postId: string;
   replierUserName: string;
   replierDisplayName: string;
+  replierProfilePicture: string;
   posterUserName: string;
   createdAt: string;
   postText: string;
@@ -107,19 +116,21 @@ interface Reply {
 interface ResponseReplies {
   replies: Reply[];
   nextPage: boolean;
+  nextPageCount: number;
 }
 
-const MESSAGE = {
-  SUCCESS: "SUCCESS",
-  DB_ERROR: "FAILED_DB",
-
-  // TO BE CONTINUED
-};
+interface UserFollows {
+  profilePicture: string;
+  username: string;
+  displayName: string;
+  bioText: string;
+}
 
 export {
   type User,
   type NewUser,
   type UserByToken,
+  type UpdatedUser,
   type EmailOptions,
   type CookieOptions,
   type NewPost,
@@ -129,4 +140,5 @@ export {
   type NewReply,
   type Reply,
   type ResponseReplies,
+  type UserFollows,
 };

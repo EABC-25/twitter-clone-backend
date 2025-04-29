@@ -1,6 +1,7 @@
 import {
   type User,
   type NewUser,
+  type UpdatedUser,
   type EmailOptions,
   type CookieOptions,
   type NewPost,
@@ -10,6 +11,7 @@ import {
   type NewReply,
   type Reply,
   type ResponseReplies,
+  type UserFollows,
 } from "./types/types";
 import { CustomError } from "./error/CustomError";
 import { handleError } from "./error/errorHandler";
@@ -41,6 +43,9 @@ import {
   getPostRepliesFromDb,
   getReplyFromDb,
   updateReplyLikesInDb,
+  deleteReplyInDb,
+  getUserFollowsCountFromDb,
+  getUserFollowsFromDb,
 } from "./db/query";
 import { sendEmail } from "./email/email";
 import cloudinaryConfig from "./config/cloudinary.config";
@@ -49,6 +54,7 @@ import { signUploadForm, deleteMedia } from "./modules/cloudinary.upload";
 export {
   type User,
   type NewUser,
+  type UpdatedUser,
   type EmailOptions,
   type CookieOptions,
   type NewPost,
@@ -58,6 +64,7 @@ export {
   type NewReply,
   type Reply,
   type ResponseReplies,
+  type UserFollows,
   CustomError,
   handleError,
   comparePassword,
@@ -89,4 +96,7 @@ export {
   getPostRepliesFromDb,
   getReplyFromDb,
   updateReplyLikesInDb,
+  deleteReplyInDb,
+  getUserFollowsCountFromDb,
+  getUserFollowsFromDb,
 };

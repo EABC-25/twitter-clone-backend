@@ -23,6 +23,8 @@ import {
   deleteUserFromDb,
   verifyUserInDb,
   generateJWToken,
+  getUserFollowsCountFromDb,
+  getUserFollowsFromDb,
 } from "../utils";
 
 export const getUsers = async (_, res: Response) => {
@@ -107,18 +109,27 @@ export const getUser = async (req: Request, res: Response) => {
 
     const lpRes = await getUserLikedPostsFromDb(userId);
     const lpResMappedVals: string[] = lpRes.map(obj => obj.postId);
+
+    const userFollowsCount = await getUserFollowsCountFromDb(userId);
+
     const user = {
       username,
       email,
-      createdAt,
+      dates: {
+        createdAt,
+        createdAtShort: "",
+        dateOfBirth,
+        dateOfBirthShort: "",
+        dateOfBirthNum: "",
+      },
       displayName,
       displayNamePermanent: dnp,
-      dateOfBirth,
       bioText,
       verified: v,
       likedPosts: lpResMappedVals,
       profilePicture,
       headerPicture,
+      userFollowsCount,
     };
     // console.log("user: ", user);
 
@@ -141,7 +152,7 @@ export const getUserName = async (req: Request, res: Response) => {
     }
 
     const results = await getUserFromDb(
-      `SELECT username, email, createdAt, displayName, displayNamePermanent, dateOfBirth, bioText, verified, profilePicture, headerPicture FROM users WHERE username = ?`,
+      `SELECT userId, username, email, createdAt, displayName, displayNamePermanent, dateOfBirth, bioText, verified, profilePicture, headerPicture FROM users WHERE username = ?`,
       un as string
     );
 
@@ -159,18 +170,26 @@ export const getUserName = async (req: Request, res: Response) => {
       throw new CustomError("User: User is not yet verified!", 403);
     }
 
+    const userFollowsCount = await getUserFollowsCountFromDb(results[0].userId);
+
     res.status(200).json({
       user: {
         username: results[0].username,
         email: results[0].email,
-        createdAt: results[0].createdAt,
+        dates: {
+          createdAt: results[0].createdAt,
+          createdAtShort: "",
+          dateOfBirth: results[0].dateOfBirth,
+          dateOfBirthShort: "",
+          dateOfBirthNum: "",
+        },
         displayName: results[0].displayName,
         displayNamePermanent: dnp,
-        dateOfBirth: results[0].dateOfBirth,
         bioText: results[0].bioText,
         verified: v,
         profilePicture: results[0].profilePicture,
         headerPicture: results[0].headerPicture,
+        userFollowsCount,
       },
     });
   } catch (err) {
@@ -244,7 +263,13 @@ export const updateUserProfile = async (req: Request, res: Response) => {
 
     let query: string = `UPDATE users SET${updateStr} WHERE userId = ?`;
 
-    if (!(await updateUserInDb(query, [...updateValues, user[0].userId]))) {
+    const updatedUser = await updateUserInDb(
+      query,
+      [...updateValues, user[0].userId],
+      user[0].userId
+    );
+
+    if (!updatedUser) {
       //revert media upload if unsuccessful
       if (updatesCopy.profilePicture) {
         await deleteMedia(ppId, "image");
@@ -261,7 +286,30 @@ export const updateUserProfile = async (req: Request, res: Response) => {
     }
 
     res.status(200).json({
-      user: { ...updates },
+      user: { ...updatedUser },
+    });
+  } catch (err) {
+    handleError(err, res);
+  }
+};
+
+export const getUserFollows = async (req: Request, res: Response) => {
+  try {
+    const { username } = req.query;
+
+    const user = await getUserFromDb(
+      `SELECT userId FROM users WHERE username = ?`,
+      username as string
+    );
+
+    if (user.length === 0) {
+      throw new CustomError("DB: Not Found", 400);
+    }
+
+    const userFollows = await getUserFollowsFromDb(user[0].userId);
+
+    res.status(200).json({
+      userFollows: userFollows,
     });
   } catch (err) {
     handleError(err, res);

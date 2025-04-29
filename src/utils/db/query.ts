@@ -5,10 +5,12 @@ import {
   type User,
   type NewUser,
   type UserByToken,
+  type UpdatedUser,
   type NewPost,
   type Post,
   type NewReply,
   type Reply,
+  type UserFollows,
 } from "../types/types";
 
 export const getUsersFromDb = async (): Promise<User[]> => {
@@ -84,15 +86,25 @@ export const addUserToDb = async (newUser: NewUser): Promise<boolean> => {
 
 export const updateUserInDb = async (
   query: string,
-  queryParams: string[]
-): Promise<boolean> => {
-  const results = await db.executeResult(query, queryParams);
+  queryParams: string[],
+  userId: string
+): Promise<UpdatedUser | null> => {
+  const updateResults = await db.executeResult(query, queryParams);
 
-  if (results[0].affectedRows === 0) {
-    return false;
+  if (updateResults[0].affectedRows === 0) {
+    return null;
   }
 
-  return true;
+  const updatedUser = await db.executeRows(
+    `SELECT profilePicture, headerPicture, displayName, bioText, dateOfBirth FROM users WHERE userId = ?`,
+    [userId]
+  );
+
+  if (updatedUser[0].length === 0) {
+    return null;
+  }
+
+  return updatedUser[0][0] as UpdatedUser;
 };
 
 export const deleteUserFromDb = async (email: string): Promise<boolean> => {
@@ -308,7 +320,8 @@ export const addReplyToDb = async (
         replies.replyId, 
         replies.postId, 
         u1.username AS replierUserName, 
-        u1.displayName AS replierDisplayName, 
+        u1.displayName AS replierDisplayName,
+        u1.profilePicture AS replierProfilePicture, 
         u2.username AS posterUserName, 
         replies.createdAt, 
         replies.postText, 
@@ -333,10 +346,23 @@ export const getPostRepliesFromDb = async (
 ): Promise<Reply[]> => {
   const rows = await db.executeRows(
     `
-    SELECT * FROM replies
-    WHERE postId = ?
-    ORDER BY createdAt DESC
-    LIMIT ${limit + 1} OFFSET ${offset}
+    SELECT 
+        replies.replyId, 
+        replies.postId, 
+        u1.username AS replierUserName, 
+        u1.displayName AS replierDisplayName, 
+        u1.profilePicture AS replierProfilePicture, 
+        u2.username AS posterUserName, 
+        replies.createdAt, 
+        replies.postText, 
+        replies.likeCount, 
+        replies.replyCount 
+      FROM replies 
+      JOIN users AS u1 ON replies.replierId = u1.userId
+      JOIN users AS u2 ON replies.posterId = u2.userId
+      WHERE replies.postId = ?
+      ORDER BY createdAt DESC
+      LIMIT ${limit + 1} OFFSET ${offset}
     `,
     [postId]
   );
@@ -394,6 +420,81 @@ export const updateReplyLikesInDb = async (
   } catch (err) {
     return false;
   }
+};
+
+export const deleteReplyInDb = async (replyId: string): Promise<boolean> => {
+  const deleteReply = await db.executeResult(
+    `DELETE FROM replies WHERE replyId = ?`,
+    [replyId]
+  );
+
+  await db.executeResult(`DELETE FROM post_likes WHERE postId = ?`, [replyId]);
+
+  if (deleteReply[0].affectedRows <= 0) {
+    return false;
+  }
+
+  return true;
+};
+
+export const getUserFollowsCountFromDb = async (
+  userId: string
+): Promise<{ following: number; followers: number }> => {
+  const following = await db.executeRows(
+    `SELECT COUNT(*) FROM user_follows WHERE follower_id = ?;`,
+    [userId]
+  );
+  const followers = await db.executeRows(
+    `SELECT COUNT(*) FROM user_follows WHERE followed_id = ?;`,
+    [userId]
+  );
+
+  return {
+    following: Object.values(following[0][0])[0],
+    followers: Object.values(followers[0][0])[0],
+  };
+};
+
+export const getUserFollowsFromDb = async (
+  userId: string
+): Promise<{
+  following: UserFollows[];
+  followers: UserFollows[];
+}> => {
+  const following = await db.executeRows(
+    `
+      SELECT
+          u.profilePicture,
+          u.username,
+          u.displayName,
+          u.bioText
+        FROM user_follows
+        JOIN users AS u ON user_follows.followed_id = u.userId
+        WHERE user_follows.follower_id = ?
+        ORDER BY user_follows.createdAt DESC
+    `,
+    [userId]
+  );
+
+  const followers = await db.executeRows(
+    `
+      SELECT
+          u.profilePicture,
+          u.username,
+          u.displayName,
+          u.bioText
+        FROM user_follows
+        JOIN users AS u ON user_follows.follower_id = u.userId
+        WHERE user_follows.followed_id = ?
+        ORDER BY user_follows.createdAt DESC
+    `,
+    [userId]
+  );
+
+  return {
+    following: following[0] as UserFollows[],
+    followers: followers[0] as UserFollows[],
+  };
 };
 
 // NEED TO REFACTOR ALL QUERIES TO A SINGLE FUNCTION THAT CAN TAKE IN QUERY AND QUERY PARAMS AS ARGS FOR DRY LIKE THE BELOW
