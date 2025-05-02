@@ -88,7 +88,18 @@ export const updateUserInDb = async (
   query: string,
   queryParams: string[],
   userId: string
-): Promise<UpdatedUser | null> => {
+): Promise<{
+  prevMedia: {
+    profilePicture: string;
+    headerPicture: string;
+    mediaPublicId: string;
+  };
+  updatedUser: UpdatedUser;
+} | null> => {
+  const prevMedia = await db.executeRows(
+    `SELECT profilePicture, headerPicture, mediaPublicId FROM users WHERE userId = ?`,
+    [userId]
+  );
   const updateResults = await db.executeResult(query, queryParams);
 
   if (updateResults[0].affectedRows === 0) {
@@ -104,7 +115,14 @@ export const updateUserInDb = async (
     return null;
   }
 
-  return updatedUser[0][0] as UpdatedUser;
+  return {
+    prevMedia: prevMedia[0][0] as {
+      profilePicture: string;
+      headerPicture: string;
+      mediaPublicId: string;
+    },
+    updatedUser: updatedUser[0][0] as UpdatedUser,
+  };
 };
 
 export const deleteUserFromDb = async (email: string): Promise<boolean> => {
@@ -137,7 +155,21 @@ export const addPostToDb = async (newPost: NewPost): Promise<Post | null> => {
   if (resultPost[0].affectedRows <= 0) return null;
 
   const resultNewPost = await db.executeRows(
-    `SELECT posts.postId, posts.createdAt, posts.postText, posts.postMedia, posts.mediaTypes, posts.likeCount, posts.replyCount, users.username, users.displayName, users.profilePicture FROM posts JOIN users WHERE posts.userId = users.userId AND posts.postId = ?`,
+    `SELECT 
+        posts.postId, 
+        posts.createdAt, 
+        posts.postText, 
+        posts.postMedia, 
+        posts.mediaTypes, 
+        posts.likeCount,
+        posts.replyCount, 
+        users.username, 
+        users.displayName, 
+        users.profilePicture 
+      FROM posts 
+      JOIN users 
+      WHERE posts.userId = users.userId 
+      AND posts.postId = ?`,
     [newUuid]
   );
 
@@ -422,13 +454,21 @@ export const updateReplyLikesInDb = async (
   }
 };
 
-export const deleteReplyInDb = async (replyId: string): Promise<boolean> => {
+export const deleteReplyInDb = async (
+  replyId: string,
+  postId: string
+): Promise<boolean> => {
   const deleteReply = await db.executeResult(
     `DELETE FROM replies WHERE replyId = ?`,
     [replyId]
   );
 
   await db.executeResult(`DELETE FROM post_likes WHERE postId = ?`, [replyId]);
+
+  await db.executeResult(
+    `UPDATE posts SET replyCount = GREATEST(replyCount - 1, 0) WHERE postId = ?`,
+    [postId]
+  );
 
   if (deleteReply[0].affectedRows <= 0) {
     return false;
@@ -437,21 +477,55 @@ export const deleteReplyInDb = async (replyId: string): Promise<boolean> => {
   return true;
 };
 
-export const getUserFollowsCountFromDb = async (
+export const getCurrUserFollowsFromDb = async (
   userId: string
-): Promise<{ following: number; followers: number }> => {
+): Promise<{
+  followingCount: number;
+  followersCount: number;
+  following: string[];
+  followers: string[];
+} | null> => {
   const following = await db.executeRows(
-    `SELECT COUNT(*) FROM user_follows WHERE follower_id = ?;`,
-    [userId]
-  );
-  const followers = await db.executeRows(
-    `SELECT COUNT(*) FROM user_follows WHERE followed_id = ?;`,
+    `
+      SELECT
+          u.username
+        FROM user_follows
+        JOIN users AS u ON user_follows.followed_id = u.userId
+        WHERE user_follows.follower_id = ?
+    `,
     [userId]
   );
 
+  const followers = await db.executeRows(
+    `
+      SELECT
+          u.username
+        FROM user_follows
+        JOIN users AS u ON user_follows.follower_id = u.userId
+        WHERE user_follows.followed_id = ?
+    `,
+    [userId]
+  );
+
+  const f1 =
+    following[0].length === 0
+      ? []
+      : following[0].map(f => {
+          return Object.values(f);
+        });
+
+  const f2 =
+    followers[0].length === 0
+      ? []
+      : followers[0].map(f => {
+          return Object.values(f);
+        });
+
   return {
-    following: Object.values(following[0][0])[0],
-    followers: Object.values(followers[0][0])[0],
+    followingCount: f1[0] ? f1[0].length : 0,
+    followersCount: f2[0] ? f2[0].length : 0,
+    following: f1[0] ? f1[0] : null,
+    followers: f2[0] ? f2[0] : null,
   };
 };
 
@@ -495,6 +569,34 @@ export const getUserFollowsFromDb = async (
     following: following[0] as UserFollows[],
     followers: followers[0] as UserFollows[],
   };
+};
+
+export const updateUserFollowsInDb = async (
+  type: string,
+  followerId: string,
+  followedId: string
+): Promise<boolean> => {
+  try {
+    let query: string;
+
+    // we actually will be putting reply likes in post_likes table since in the future I plan to merge post and reply as one
+    if (type === "follow") {
+      query = `INSERT INTO user_follows (follower_id, followed_id) VALUES (?, ?);`;
+    } else if (type === "unfollow") {
+      query = `DELETE FROM user_follows WHERE follower_id = ? AND followed_id = ?;`;
+    }
+    const result = await db.executeResult(query, [followerId, followedId]);
+
+    console.log("result:", result);
+
+    if (result[0].affectedRows !== 1) {
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    return false;
+  }
 };
 
 // NEED TO REFACTOR ALL QUERIES TO A SINGLE FUNCTION THAT CAN TAKE IN QUERY AND QUERY PARAMS AS ARGS FOR DRY LIKE THE BELOW

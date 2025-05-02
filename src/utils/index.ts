@@ -44,8 +44,9 @@ import {
   getReplyFromDb,
   updateReplyLikesInDb,
   deleteReplyInDb,
-  getUserFollowsCountFromDb,
+  getCurrUserFollowsFromDb,
   getUserFollowsFromDb,
+  updateUserFollowsInDb,
 } from "./db/query";
 import { sendEmail } from "./email/email";
 import cloudinaryConfig from "./config/cloudinary.config";
@@ -97,6 +98,7 @@ export {
   getReplyFromDb,
   updateReplyLikesInDb,
   deleteReplyInDb,
-  getUserFollowsCountFromDb,
+  getCurrUserFollowsFromDb,
   getUserFollowsFromDb,
+  updateUserFollowsInDb,
 };

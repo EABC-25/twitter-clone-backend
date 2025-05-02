@@ -23,9 +23,11 @@ import {
   deleteUserFromDb,
   verifyUserInDb,
   generateJWToken,
-  getUserFollowsCountFromDb,
+  getCurrUserFollowsFromDb,
   getUserFollowsFromDb,
+  updateUserFollowsInDb,
 } from "../utils";
+import { profile } from "console";
 
 export const getUsers = async (_, res: Response) => {
   try {
@@ -110,7 +112,7 @@ export const getUser = async (req: Request, res: Response) => {
     const lpRes = await getUserLikedPostsFromDb(userId);
     const lpResMappedVals: string[] = lpRes.map(obj => obj.postId);
 
-    const userFollowsCount = await getUserFollowsCountFromDb(userId);
+    const userFollowsCount = await getCurrUserFollowsFromDb(userId);
 
     const user = {
       username,
@@ -124,7 +126,7 @@ export const getUser = async (req: Request, res: Response) => {
       },
       displayName,
       displayNamePermanent: dnp,
-      bioText,
+      bioText: bioText === null ? "" : bioText,
       verified: v,
       likedPosts: lpResMappedVals,
       profilePicture,
@@ -170,7 +172,7 @@ export const getUserName = async (req: Request, res: Response) => {
       throw new CustomError("User: User is not yet verified!", 403);
     }
 
-    const userFollowsCount = await getUserFollowsCountFromDb(results[0].userId);
+    const userFollowsCount = await getCurrUserFollowsFromDb(results[0].userId);
 
     res.status(200).json({
       user: {
@@ -185,8 +187,9 @@ export const getUserName = async (req: Request, res: Response) => {
         },
         displayName: results[0].displayName,
         displayNamePermanent: dnp,
-        bioText: results[0].bioText,
+        bioText: results[0].bioText === null ? "" : results[0].bioText,
         verified: v,
+        likedPosts: null,
         profilePicture: results[0].profilePicture,
         headerPicture: results[0].headerPicture,
         userFollowsCount,
@@ -231,12 +234,11 @@ export const updateUserProfile = async (req: Request, res: Response) => {
       throw new CustomError("Unauthorized access!", 401);
     }
 
-    console.log(updatesCopy);
     // this is just so that we can delete media uploaded if everything fails..
     const hpId: string | null =
-      updatesCopy.headerPicture && updates.mediaPublicId.pop();
+      updatesCopy.headerPicture && updates.mediaPublicId[1];
     const ppId: string | null =
-      updatesCopy.profilePicture && updates.mediaPublicId.pop();
+      updatesCopy.profilePicture && updates.mediaPublicId[0];
 
     let updateKeys: string[] = [];
     let updateValues: string[] = [];
@@ -246,14 +248,23 @@ export const updateUserProfile = async (req: Request, res: Response) => {
       .slice(0, 6) // remove email
       .forEach(v => {
         if (updatesCopy[v] !== null) {
-          const u: string = !(updatesCopy[v] instanceof Array)
+          console.log(Array.isArray(updatesCopy[v]));
+          const u: string = !Array.isArray(updatesCopy[v])
             ? updatesCopy[v]
-            : updatesCopy[v].length !== 0
-            ? updatesCopy[v].join(",")
             : "";
+
+          const m: string =
+            Array.isArray(updatesCopy[v]) && updates[v].length !== 0
+              ? updatesCopy[v].join(",")
+              : null;
 
           if (u) {
             updateValues.push(u);
+            updateKeys.push(` ${v} = ?`);
+          }
+
+          if (m) {
+            updateValues.push(m);
             updateKeys.push(` ${v} = ?`);
           }
         }
@@ -269,7 +280,7 @@ export const updateUserProfile = async (req: Request, res: Response) => {
       user[0].userId
     );
 
-    if (!updatedUser) {
+    if (!updatedUser.updatedUser) {
       //revert media upload if unsuccessful
       if (updatesCopy.profilePicture) {
         await deleteMedia(ppId, "image");
@@ -285,8 +296,31 @@ export const updateUserProfile = async (req: Request, res: Response) => {
       );
     }
 
+    const dualMediaFlag =
+      updatedUser.prevMedia.profilePicture &&
+      updatedUser.prevMedia.headerPicture;
+    console.log(updatedUser);
+
+    const profileMediaFlag =
+      updatedUser.prevMedia.profilePicture &&
+      !updatedUser.prevMedia.headerPicture;
+
+    const headerMediaFlag =
+      !updatedUser.prevMedia.profilePicture &&
+      updatedUser.prevMedia.headerPicture;
+
+    if (dualMediaFlag) {
+      const split = updatedUser.prevMedia.mediaPublicId.split(",");
+      await deleteMedia(split[0], "image");
+      await deleteMedia(split[1], "image");
+    } else if (profileMediaFlag) {
+      await deleteMedia(updatedUser.prevMedia.mediaPublicId, "image");
+    } else if (headerMediaFlag) {
+      await deleteMedia(updatedUser.prevMedia.mediaPublicId, "image");
+    }
+
     res.status(200).json({
-      user: { ...updatedUser },
+      success: true,
     });
   } catch (err) {
     handleError(err, res);
@@ -306,10 +340,42 @@ export const getUserFollows = async (req: Request, res: Response) => {
       throw new CustomError("DB: Not Found", 400);
     }
 
-    const userFollows = await getUserFollowsFromDb(user[0].userId);
+    const userFollows = await getCurrUserFollowsFromDb(user[0].userId);
 
     res.status(200).json({
       userFollows: userFollows,
+    });
+  } catch (err) {
+    handleError(err, res);
+  }
+};
+
+export const updateUserFollows = async (req: Request, res: Response) => {
+  try {
+    const { updates, user } = req.body;
+
+    console.log(updates);
+
+    console.log(user);
+
+    // if (user[0].username === updates.otherUser) {
+    //   throw new CustomError("DB: Unauthorized.", 403);
+    // }
+
+    // const otherUserId = await getUserFromDb(
+    //   `SELECT userId FROM users WHERE username = ?`,
+    //   updates.otherUser as string
+    // );
+
+    // console.log(otherUserId);
+
+    // if (otherUserId.length === 0) {
+    //   throw new CustomError("DB: Not Found", 400);
+    // }
+
+    // if (!(await updateUserFollowsInDb(type, user[0].userId, Object.values(otherUserId[0][0]))))
+    res.status(200).json({
+      success: true,
     });
   } catch (err) {
     handleError(err, res);

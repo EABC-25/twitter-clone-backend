@@ -107,13 +107,6 @@ export const getPost = async (req: Request, res: Response) => {
       throw new CustomError("DB: post not found.", 404);
     }
 
-    // const response: ResponsePost = {
-    //   post: post[0],
-    //   reacts: null,
-    // };
-
-    // console.log("getPost ran: ", post[0]);
-
     res.status(200).json(post[0]);
   } catch (err) {
     handleError(err, res);
@@ -431,9 +424,9 @@ export const deletePost = async (req: Request, res: Response) => {
 
 export const deleteReply = async (req: Request, res: Response) => {
   try {
-    const { replyId } = req.query;
+    const { replyId, postId } = req.query;
 
-    if (!(await deleteReplyInDb(replyId as string))) {
+    if (!(await deleteReplyInDb(replyId as string, postId as string))) {
       throw new CustomError("DB: Operation failed!", 500);
     }
 

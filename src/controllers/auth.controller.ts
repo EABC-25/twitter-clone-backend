@@ -158,10 +158,13 @@ export const verifyEmail = async (req: Request, res: Response) => {
       throw new CustomError("DB: User not found!", 404);
     }
 
+    console.log(results);
+
     const processed = results.map(row => ({
       ...row,
       verified: row.verified ? row.verified[0] === 1 : false,
     }));
+    console.log(processed);
     if (processed[0].verified) {
       throw new CustomError("User: User is already verified!", 403);
     }
@@ -198,7 +201,7 @@ export const login = async (req: Request, res: Response) => {
     }
 
     const results = await getUserFromDb(
-      `SELECT userId, username, email, password, verified, createdAt, displayName, displayNamePermanent, dateOfBirth, bioText, profilePicture, headerPicture FROM users WHERE email = ?`,
+      `SELECT userId, password FROM users WHERE email = ?`,
       email as string
     );
 
@@ -206,11 +209,11 @@ export const login = async (req: Request, res: Response) => {
       throw new CustomError("DB: User/Email not found!", 404);
     }
 
-    const dnp = results[0].displayNamePermanent
-      ? results[0].displayNamePermanent[0] === 1
-      : false;
+    // const dnp = results[0].displayNamePermanent
+    //   ? results[0].displayNamePermanent[0] === 1
+    //   : false;
 
-    const v = results[0].verified ? results[0].verified[0] === 1 : false;
+    // const v = results[0].verified ? results[0].verified[0] === 1 : false;
 
     // if (!v) {
     //   throw new CustomError("User: User is not yet verified!", 403);
@@ -222,33 +225,33 @@ export const login = async (req: Request, res: Response) => {
       throw new CustomError("User: Invalid Password!", 404);
     }
 
-    const lpRes = await getUserLikedPostsFromDb(results[0].userId);
-    const lpResMappedVals: string[] = lpRes.map(obj => obj.postId);
+    // const lpRes = await getUserLikedPostsFromDb(results[0].userId);
+    // const lpResMappedVals: string[] = lpRes.map(obj => obj.postId);
 
-    const userFollowsCount = await getUserFollowsCountFromDb(results[0].userId);
+    // const userFollowsCount = await getUserFollowsCountFromDb(results[0].userId);
 
-    const processed = {
-      userId: results[0].userId,
-      username: results[0].username,
-      email: results[0].email,
-      dates: {
-        createdAt: results[0].createdAt,
-        createdAtShort: "",
-        dateOfBirth: results[0].dateOfBirth,
-        dateOfBirthShort: "",
-        dateOfBirthNum: "",
-      },
-      displayName: results[0].displayName,
-      displayNamePermanent: dnp,
-      bioText: results[0].bioText,
-      verified: v,
-      likedPosts: lpResMappedVals,
-      profilePicture: results[0].profilePicture,
-      headerPicture: results[0].headerPicture,
-      userFollowsCount: userFollowsCount,
-    };
-
-    sendTokenizedResponse(processed, 200, res);
+    // const processed = {
+    //   userId: results[0].userId,
+    //   username: results[0].username,
+    //   email: results[0].email,
+    //   dates: {
+    //     createdAt: results[0].createdAt,
+    //     createdAtShort: "",
+    //     dateOfBirth: results[0].dateOfBirth,
+    //     dateOfBirthShort: "",
+    //     dateOfBirthNum: "",
+    //   },
+    //   displayName: results[0].displayName,
+    //   displayNamePermanent: dnp,
+    //   bioText: results[0].bioText === null ? "" : results[0].bioText,
+    //   verified: v,
+    //   likedPosts: lpResMappedVals,
+    //   profilePicture: results[0].profilePicture,
+    //   headerPicture: results[0].headerPicture,
+    //   userFollowsCount: userFollowsCount,
+    // };
+    console.log("login done, next function..");
+    sendTokenizedResponse(results[0].userId, 200, res);
   } catch (err) {
     handleError(err, res);
   }
@@ -261,7 +264,7 @@ export const forgotPassword = async (req: Request, res: Response) => {};
 // helper function
 
 const sendTokenizedResponse = async (
-  data: any,
+  userId: string,
   statusCode: number,
   res: Response,
   action?: string
@@ -279,19 +282,15 @@ const sendTokenizedResponse = async (
     options.expires = new Date(Date.now());
 
     res.cookie("token", "none", options);
-    res.status(statusCode).json({
-      success: true,
-    });
+    res.status(statusCode).json({ success: true });
   }
 
   // console.log(data);
 
-  const jwToken = generateJWToken(data.userId);
+  const jwToken = generateJWToken(userId);
 
-  const user = { ...data, userId: null };
-
+  // const user = { ...data, userId: null };
+  console.log("token done, sending..");
   res.cookie("token", jwToken, options);
-  res.status(statusCode).json({
-    user: user,
-  });
+  res.status(statusCode).json({ success: true });
 };
