@@ -2,25 +2,27 @@ import express from "express";
 
 import {
   getUsers,
-  getUser,
+  getUserWithToken,
   getUserTest,
-  getUserName,
+  getUserWithUserName,
   deleteUser,
   updateUserProfile,
   getUserFollows,
   updateUserFollows,
+  getUsersForSearch,
 } from "../controllers/user.controller";
 import { protect } from "../middlewares/auth/auth";
 
 const router = express.Router();
 
-router.get("/getUsers", getUsers);
-router.get("/getUser", protect, getUser);
-router.get("/getUser/test", getUserTest);
-router.get("/getUserName", protect, getUserName);
+// router.get("/getUsers", getUsers);
+// router.get("/getUser/test", getUserTest);
+router.get("/getUserWithToken", protect, getUserWithToken);
+router.get("/getUserWithUserName", protect, getUserWithUserName);
 router.delete("/deleteUser", protect, deleteUser);
 router.patch("/updateUserProfile", protect, updateUserProfile);
 router.post("/follow", protect, updateUserFollows);
-router.get("/getUserFollows", getUserFollows);
+router.get("/getUserFollows", protect, getUserFollows);
+router.get("/search", protect, getUsersForSearch);
 
 export default router;

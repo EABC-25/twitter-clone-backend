@@ -11,6 +11,7 @@ import {
   type NewReply,
   type Reply,
   type UserFollows,
+  type UserSearch,
 } from "../types/types";
 
 export const getUsersFromDb = async (): Promise<User[]> => {
@@ -477,7 +478,7 @@ export const deleteReplyInDb = async (
   return true;
 };
 
-export const getCurrUserFollowsFromDb = async (
+export const getUserFollowsCountFromDb = async (
   userId: string
 ): Promise<{
   followingCount: number;
@@ -507,25 +508,28 @@ export const getCurrUserFollowsFromDb = async (
     [userId]
   );
 
+  console.log("following: ", following);
+  console.log("followers: ", followers);
+
   const f1 =
     following[0].length === 0
       ? []
-      : following[0].map(f => {
+      : following[0].flatMap(f => {
           return Object.values(f);
         });
 
   const f2 =
     followers[0].length === 0
       ? []
-      : followers[0].map(f => {
+      : followers[0].flatMap(f => {
           return Object.values(f);
         });
 
   return {
-    followingCount: f1[0] ? f1[0].length : 0,
-    followersCount: f2[0] ? f2[0].length : 0,
-    following: f1[0] ? f1[0] : null,
-    followers: f2[0] ? f2[0] : null,
+    followingCount: f1.length > 0 ? f1.length : 0,
+    followersCount: f2.length ? f2.length : 0,
+    following: f1.length > 0 ? f1 : null,
+    followers: f2.length > 0 ? f2 : null,
   };
 };
 
@@ -597,6 +601,13 @@ export const updateUserFollowsInDb = async (
   } catch (err) {
     return false;
   }
+};
+
+export const getUsersSearchedFromDb = async (): Promise<UserSearch[]> => {
+  const rows = await db.executeRows(
+    `SELECT profilePicture, username, displayName FROM users`
+  );
+  return rows[0] as UserSearch[];
 };
 
 // NEED TO REFACTOR ALL QUERIES TO A SINGLE FUNCTION THAT CAN TAKE IN QUERY AND QUERY PARAMS AS ARGS FOR DRY LIKE THE BELOW

@@ -12,6 +12,7 @@ import {
   type Reply,
   type ResponseReplies,
   type UserFollows,
+  type UserSearch,
 } from "./types/types";
 import { CustomError } from "./error/CustomError";
 import { handleError } from "./error/errorHandler";
@@ -44,9 +45,10 @@ import {
   getReplyFromDb,
   updateReplyLikesInDb,
   deleteReplyInDb,
-  getCurrUserFollowsFromDb,
+  getUserFollowsCountFromDb,
   getUserFollowsFromDb,
   updateUserFollowsInDb,
+  getUsersSearchedFromDb,
 } from "./db/query";
 import { sendEmail } from "./email/email";
 import cloudinaryConfig from "./config/cloudinary.config";
@@ -66,6 +68,7 @@ export {
   type Reply,
   type ResponseReplies,
   type UserFollows,
+  type UserSearch,
   CustomError,
   handleError,
   comparePassword,
@@ -98,7 +101,8 @@ export {
   getReplyFromDb,
   updateReplyLikesInDb,
   deleteReplyInDb,
-  getCurrUserFollowsFromDb,
+  getUserFollowsCountFromDb,
   getUserFollowsFromDb,
   updateUserFollowsInDb,
+  getUsersSearchedFromDb,
 };

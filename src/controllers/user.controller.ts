@@ -1,5 +1,4 @@
 import { type Request, type Response, type NextFunction } from "express";
-import validator from "validator";
 import {
   type User,
   type NewUser,
@@ -23,11 +22,11 @@ import {
   deleteUserFromDb,
   verifyUserInDb,
   generateJWToken,
-  getCurrUserFollowsFromDb,
+  getUserFollowsCountFromDb,
   getUserFollowsFromDb,
   updateUserFollowsInDb,
+  getUsersSearchedFromDb,
 } from "../utils";
-import { profile } from "console";
 
 export const getUsers = async (_, res: Response) => {
   try {
@@ -85,7 +84,7 @@ export const getUserTest = async (req: Request, res: Response) => {
   }
 };
 
-export const getUser = async (req: Request, res: Response) => {
+export const getUserWithToken = async (req: Request, res: Response) => {
   try {
     let {
       userId,
@@ -105,14 +104,14 @@ export const getUser = async (req: Request, res: Response) => {
 
     const v = verified ? verified[0] === 1 : false;
 
-    if (!v) {
-      throw new CustomError("User: User is not yet verified!", 403);
-    }
+    // if (!v) {
+    //   throw new CustomError("User: User is not yet verified!", 403);
+    // }
 
     const lpRes = await getUserLikedPostsFromDb(userId);
     const lpResMappedVals: string[] = lpRes.map(obj => obj.postId);
 
-    const userFollowsCount = await getCurrUserFollowsFromDb(userId);
+    const userFollowsCount = await getUserFollowsCountFromDb(userId);
 
     const user = {
       username,
@@ -126,7 +125,7 @@ export const getUser = async (req: Request, res: Response) => {
       },
       displayName,
       displayNamePermanent: dnp,
-      bioText: bioText === null ? "" : bioText,
+      bioText,
       verified: v,
       likedPosts: lpResMappedVals,
       profilePicture,
@@ -143,7 +142,7 @@ export const getUser = async (req: Request, res: Response) => {
   }
 };
 
-export const getUserName = async (req: Request, res: Response) => {
+export const getUserWithUserName = async (req: Request, res: Response) => {
   try {
     const { username: un } = req.query;
 
@@ -168,11 +167,11 @@ export const getUserName = async (req: Request, res: Response) => {
 
     const v = results[0].verified ? results[0].verified[0] === 1 : false;
 
-    if (!v) {
-      throw new CustomError("User: User is not yet verified!", 403);
-    }
+    // if (!v) {
+    //   throw new CustomError("User: User is not yet verified!", 403);
+    // }
 
-    const userFollowsCount = await getCurrUserFollowsFromDb(results[0].userId);
+    const userFollowsCount = await getUserFollowsCountFromDb(results[0].userId);
 
     res.status(200).json({
       user: {
@@ -187,7 +186,7 @@ export const getUserName = async (req: Request, res: Response) => {
         },
         displayName: results[0].displayName,
         displayNamePermanent: dnp,
-        bioText: results[0].bioText === null ? "" : results[0].bioText,
+        bioText: results[0].bioText,
         verified: v,
         likedPosts: null,
         profilePicture: results[0].profilePicture,
@@ -340,7 +339,7 @@ export const getUserFollows = async (req: Request, res: Response) => {
       throw new CustomError("DB: Not Found", 400);
     }
 
-    const userFollows = await getCurrUserFollowsFromDb(user[0].userId);
+    const userFollows = await getUserFollowsFromDb(user[0].userId);
 
     res.status(200).json({
       userFollows: userFollows,
@@ -354,28 +353,43 @@ export const updateUserFollows = async (req: Request, res: Response) => {
   try {
     const { updates, user } = req.body;
 
-    console.log(updates);
+    if (user[0].username === updates.otherUser) {
+      throw new CustomError("DB: Unauthorized.", 403);
+    }
 
-    console.log(user);
+    const otherUserId = await getUserFromDb(
+      `SELECT userId FROM users WHERE username = ?`,
+      updates.otherUser as string
+    );
 
-    // if (user[0].username === updates.otherUser) {
-    //   throw new CustomError("DB: Unauthorized.", 403);
-    // }
+    if (otherUserId.length === 0) {
+      throw new CustomError("DB: Not Found", 400);
+    }
 
-    // const otherUserId = await getUserFromDb(
-    //   `SELECT userId FROM users WHERE username = ?`,
-    //   updates.otherUser as string
-    // );
+    if (
+      !(await updateUserFollowsInDb(
+        updates.type,
+        user[0].userId,
+        otherUserId[0].userId
+      ))
+    ) {
+      throw new CustomError("DB: Something went wrong", 500);
+    }
 
-    // console.log(otherUserId);
-
-    // if (otherUserId.length === 0) {
-    //   throw new CustomError("DB: Not Found", 400);
-    // }
-
-    // if (!(await updateUserFollowsInDb(type, user[0].userId, Object.values(otherUserId[0][0]))))
     res.status(200).json({
       success: true,
+    });
+  } catch (err) {
+    handleError(err, res);
+  }
+};
+
+export const getUsersForSearch = async (req: Request, res: Response) => {
+  try {
+    const data = await getUsersSearchedFromDb();
+    console.log(data);
+    res.status(200).json({
+      users: data,
     });
   } catch (err) {
     handleError(err, res);

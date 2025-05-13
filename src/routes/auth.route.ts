@@ -6,6 +6,7 @@ import {
   register,
   verifyEmail,
   login,
+  logout,
 } from "../controllers/auth.controller";
 import { protect } from "../middlewares/auth/auth";
 
@@ -16,6 +17,7 @@ router.get("/checkEmail", checkEmail);
 router.post("/register", register);
 router.post("/verifyEmail", verifyEmail);
 router.post("/login", login);
+router.post("/logout", protect, logout);
 router.post("/sendEmailVerification");
 
 export default router;

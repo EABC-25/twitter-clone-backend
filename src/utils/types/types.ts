@@ -126,6 +126,12 @@ interface UserFollows {
   bioText: string;
 }
 
+interface UserSearch {
+  profilePicture: string;
+  username: string;
+  displayName: string;
+}
+
 export {
   type User,
   type NewUser,
@@ -141,4 +147,5 @@ export {
   type Reply,
   type ResponseReplies,
   type UserFollows,
+  type UserSearch,
 };

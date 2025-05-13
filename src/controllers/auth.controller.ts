@@ -201,23 +201,22 @@ export const login = async (req: Request, res: Response) => {
     }
 
     const results = await getUserFromDb(
-      `SELECT userId, password FROM users WHERE email = ?`,
+      `SELECT userId, verified, password FROM users WHERE email = ?`,
       email as string
     );
+
+    console.log(results);
+
+    const v = results[0].verified ? results[0].verified[0] === 1 : false;
+
+    console.log(v);
+    if (!v) {
+      throw new CustomError("User: User is not yet verified!", 403);
+    }
 
     if (results.length <= 0) {
       throw new CustomError("DB: User/Email not found!", 404);
     }
-
-    // const dnp = results[0].displayNamePermanent
-    //   ? results[0].displayNamePermanent[0] === 1
-    //   : false;
-
-    // const v = results[0].verified ? results[0].verified[0] === 1 : false;
-
-    // if (!v) {
-    //   throw new CustomError("User: User is not yet verified!", 403);
-    // }
 
     const isMatching = await comparePassword(password, results[0].password);
 
@@ -225,39 +224,20 @@ export const login = async (req: Request, res: Response) => {
       throw new CustomError("User: Invalid Password!", 404);
     }
 
-    // const lpRes = await getUserLikedPostsFromDb(results[0].userId);
-    // const lpResMappedVals: string[] = lpRes.map(obj => obj.postId);
-
-    // const userFollowsCount = await getUserFollowsCountFromDb(results[0].userId);
-
-    // const processed = {
-    //   userId: results[0].userId,
-    //   username: results[0].username,
-    //   email: results[0].email,
-    //   dates: {
-    //     createdAt: results[0].createdAt,
-    //     createdAtShort: "",
-    //     dateOfBirth: results[0].dateOfBirth,
-    //     dateOfBirthShort: "",
-    //     dateOfBirthNum: "",
-    //   },
-    //   displayName: results[0].displayName,
-    //   displayNamePermanent: dnp,
-    //   bioText: results[0].bioText === null ? "" : results[0].bioText,
-    //   verified: v,
-    //   likedPosts: lpResMappedVals,
-    //   profilePicture: results[0].profilePicture,
-    //   headerPicture: results[0].headerPicture,
-    //   userFollowsCount: userFollowsCount,
-    // };
-    console.log("login done, next function..");
     sendTokenizedResponse(results[0].userId, 200, res);
   } catch (err) {
     handleError(err, res);
   }
 };
 
-export const logout = async (req: Request, res: Response) => {};
+export const logout = async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.body.user[0];
+    sendTokenizedResponse(userId, 200, res, "logout");
+  } catch (err) {
+    handleError(err, res);
+  }
+};
 
 export const forgotPassword = async (req: Request, res: Response) => {};
 
@@ -283,14 +263,11 @@ const sendTokenizedResponse = async (
 
     res.cookie("token", "none", options);
     res.status(statusCode).json({ success: true });
+  } else {
+    const jwToken = generateJWToken(userId);
+
+    console.log("token done, sending..");
+    res.cookie("token", jwToken, options);
+    res.status(statusCode).json({ success: true });
   }
-
-  // console.log(data);
-
-  const jwToken = generateJWToken(userId);
-
-  // const user = { ...data, userId: null };
-  console.log("token done, sending..");
-  res.cookie("token", jwToken, options);
-  res.status(statusCode).json({ success: true });
 };
