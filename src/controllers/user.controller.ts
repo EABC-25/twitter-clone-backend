@@ -98,6 +98,9 @@ export const getUserWithToken = async (req: Request, res: Response) => {
       verified,
       profilePicture,
       headerPicture,
+      postCount,
+      replyCount,
+      userInfoChangeCount,
     } = req.body.user[0];
 
     const dnp = displayNamePermanent ? displayNamePermanent[0] === 1 : false;
@@ -131,6 +134,9 @@ export const getUserWithToken = async (req: Request, res: Response) => {
       profilePicture,
       headerPicture,
       userFollowsCount,
+      postCount,
+      replyCount,
+      userInfoChangeCount,
     };
     // console.log("user: ", user);
 
@@ -192,6 +198,9 @@ export const getUserWithUserName = async (req: Request, res: Response) => {
         profilePicture: results[0].profilePicture,
         headerPicture: results[0].headerPicture,
         userFollowsCount,
+        postCount: null,
+        replyCount: null,
+        userInfoChangeCount: null,
       },
     });
   } catch (err) {

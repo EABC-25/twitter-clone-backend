@@ -77,7 +77,7 @@ export const getHomePosts = async (req: Request, res: Response) => {
       nextPage: false,
     };
 
-    if (response.posts.length > 30) {
+    if (response.posts.length > limit) {
       response.posts = response.posts.slice(0, 30);
       response.nextPage = true;
     } else {
@@ -153,7 +153,7 @@ export const getUserPosts = async (req: Request, res: Response) => {
       nextPage: false,
     };
 
-    if (response.posts.length > 30) {
+    if (response.posts.length > limit) {
       response.posts = response.posts.slice(0, 30);
       response.nextPage = true;
     } else {
@@ -169,6 +169,10 @@ export const getUserPosts = async (req: Request, res: Response) => {
 export const addPost = async (req: Request, res: Response) => {
   try {
     const { html, media, mediaPublicId, mediaTypes, user } = req.body;
+
+    if (user.postCount === 10) {
+      throw new CustomError("Post limit already reached", 403);
+    }
 
     let sanitizedHtml: string | null = null;
 
@@ -396,10 +400,11 @@ export const updateReplyLikes = async (req: Request, res: Response) => {
 export const deletePost = async (req: Request, res: Response) => {
   try {
     const { postId } = req.query;
+    const { user } = req.body;
     // we checked the user via cookie-jwt in protect but how sure are we that the user deleting is the owner of the post once the request lands here? is it possible to bypass our protected route??? should we perform db check for user here???
 
     // likes and replies also already handled for deletion inside below function
-    const result = await deletePostInDb(postId as string);
+    const result = await deletePostInDb(postId as string, user[0].userId);
 
     if (!result || result === null) {
       throw new CustomError("DB: Operation failed!", 403);

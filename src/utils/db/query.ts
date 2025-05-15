@@ -126,6 +126,14 @@ export const updateUserInDb = async (
   };
 };
 
+export const updateUserLimits = async (query: string): Promise<boolean> => {
+  const rows = await db.executeResult(query);
+
+  if (rows[0].affectedRows > 0) return true;
+
+  return false;
+};
+
 export const deleteUserFromDb = async (email: string): Promise<boolean> => {
   const rows = await db.executeResult(`DELETE FROM users WHERE email = ?`, [
     email,
@@ -176,11 +184,19 @@ export const addPostToDb = async (newPost: NewPost): Promise<Post | null> => {
 
   if (resultNewPost[0].length === 0) return null;
 
+  const resultLimits = await db.executeResult(
+    `UPDATE users SET postCount = postCount + 1 WHERE userId = ?`,
+    [newPost.userId]
+  );
+
+  if (resultLimits[0].affectedRows === 0) return null;
+
   return resultNewPost[0][0] as Post;
 };
 
 export const deletePostInDb = async (
-  postId: string
+  postId: string,
+  userId: string
 ): Promise<{ mediaPublicId: string; mediaTypes: string } | null> => {
   const mediaResult = await db.executeResult(
     `SELECT mediaPublicId, mediaTypes FROM posts WHERE postId = ?`,
@@ -199,7 +215,14 @@ export const deletePostInDb = async (
     db.executeResult(`DELETE FROM post_likes WHERE postId = ?`, [postId])
   );
 
-  Promise.all([deleteReply, deleteLikes]).then(_ => {
+  const deleteLimits = Promise.resolve(
+    db.executeResult(
+      `UPDATE users SET postCount = GREATEST(postCount - 1, 0) WHERE userId = ?`,
+      [userId]
+    )
+  );
+
+  Promise.all([deleteReply, deleteLikes, deleteLimits]).then(_ => {
     // console.log(values);
   });
 
