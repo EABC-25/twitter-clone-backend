@@ -14,6 +14,8 @@ import {
   type UserSearch,
 } from "../types/types";
 
+import { CustomError } from "../error/CustomError";
+
 export const getUsersFromDb = async (): Promise<User[]> => {
   const rows = await db.executeRows(`SELECT * FROM users`);
   return rows[0] as User[];
@@ -90,40 +92,26 @@ export const updateUserInDb = async (
   queryParams: string[],
   userId: string
 ): Promise<{
-  prevMedia: {
-    profilePicture: string;
-    headerPicture: string;
-    mediaPublicId: string;
-  };
-  updatedUser: UpdatedUser;
+  profilePictureMediaId: string;
+  headerPictureMediaId: string;
 } | null> => {
-  const prevMedia = await db.executeRows(
-    `SELECT profilePicture, headerPicture, mediaPublicId FROM users WHERE userId = ?`,
-    [userId]
-  );
-  const updateResults = await db.executeResult(query, queryParams);
+  try {
+    const prevMedia = await db.executeRows(
+      `SELECT profilePictureMediaId, headerPictureMediaId FROM users WHERE userId = ?`,
+      [userId]
+    );
+    const updateResults = await db.executeResult(query, queryParams);
 
-  if (updateResults[0].affectedRows === 0) {
+    if (updateResults[0].affectedRows === 0) {
+      return null;
+    }
+    return prevMedia[0][0] as {
+      profilePictureMediaId: string;
+      headerPictureMediaId: string;
+    };
+  } catch (err) {
     return null;
   }
-
-  const updatedUser = await db.executeRows(
-    `SELECT profilePicture, headerPicture, displayName, bioText, dateOfBirth FROM users WHERE userId = ?`,
-    [userId]
-  );
-
-  if (updatedUser[0].length === 0) {
-    return null;
-  }
-
-  return {
-    prevMedia: prevMedia[0][0] as {
-      profilePicture: string;
-      headerPicture: string;
-      mediaPublicId: string;
-    },
-    updatedUser: updatedUser[0][0] as UpdatedUser,
-  };
 };
 
 export const updateUserLimits = async (query: string): Promise<boolean> => {
@@ -197,9 +185,13 @@ export const addPostToDb = async (newPost: NewPost): Promise<Post | null> => {
 export const deletePostInDb = async (
   postId: string,
   userId: string
-): Promise<{ mediaPublicId: string; mediaTypes: string } | null> => {
+): Promise<{
+  mediaPublicId: string;
+  mediaTypes: string;
+  replyCount: number;
+} | null> => {
   const mediaResult = await db.executeResult(
-    `SELECT mediaPublicId, mediaTypes FROM posts WHERE postId = ?`,
+    `SELECT mediaPublicId, mediaTypes, replyCount FROM posts WHERE postId = ?`,
     [postId]
   );
   const deletePost = await db.executeResult(
@@ -215,10 +207,12 @@ export const deletePostInDb = async (
     db.executeResult(`DELETE FROM post_likes WHERE postId = ?`, [postId])
   );
 
+  const replyCount = mediaResult[0][0].replyCount;
+
   const deleteLimits = Promise.resolve(
     db.executeResult(
-      `UPDATE users SET postCount = GREATEST(postCount - 1, 0) WHERE userId = ?`,
-      [userId]
+      `UPDATE users SET postCount = GREATEST(postCount - 1, 0), replyCount = GREATEST(replyCount - ?, 0) WHERE userId = ?`,
+      [replyCount, userId]
     )
   );
 
@@ -392,6 +386,13 @@ export const addReplyToDb = async (
 
   if (resultNewReply[0].length === 0) return null;
 
+  const resultLimits = await db.executeResult(
+    `UPDATE users SET replyCount = replyCount + 1 WHERE userId = ?`,
+    [newReply.replierId]
+  );
+
+  if (resultLimits[0].affectedRows === 0) return null;
+
   return resultNewReply[0][0] as Reply;
 };
 
@@ -480,19 +481,35 @@ export const updateReplyLikesInDb = async (
 
 export const deleteReplyInDb = async (
   replyId: string,
-  postId: string
+  postId: string,
+  userId: string
 ): Promise<boolean> => {
   const deleteReply = await db.executeResult(
     `DELETE FROM replies WHERE replyId = ?`,
     [replyId]
   );
 
-  await db.executeResult(`DELETE FROM post_likes WHERE postId = ?`, [replyId]);
-
-  await db.executeResult(
-    `UPDATE posts SET replyCount = GREATEST(replyCount - 1, 0) WHERE postId = ?`,
-    [postId]
+  const deleteLikes = Promise.resolve(
+    db.executeResult(`DELETE FROM post_likes WHERE postId = ?`, [replyId])
   );
+
+  const deleteReplyCount = Promise.resolve(
+    db.executeResult(
+      `UPDATE posts SET replyCount = GREATEST(replyCount - 1, 0) WHERE postId = ?`,
+      [postId]
+    )
+  );
+
+  const deleteLimits = Promise.resolve(
+    db.executeResult(
+      `UPDATE users SET replyCount = GREATEST(replyCount - 1, 0) WHERE userId = ?`,
+      [userId]
+    )
+  );
+
+  Promise.all([deleteReplyCount, deleteLikes, deleteLimits]).then(_ => {
+    // console.log(values);
+  });
 
   if (deleteReply[0].affectedRows <= 0) {
     return false;
@@ -530,9 +547,6 @@ export const getUserFollowsCountFromDb = async (
     `,
     [userId]
   );
-
-  console.log("following: ", following);
-  console.log("followers: ", followers);
 
   const f1 =
     following[0].length === 0
@@ -606,15 +620,12 @@ export const updateUserFollowsInDb = async (
   try {
     let query: string;
 
-    // we actually will be putting reply likes in post_likes table since in the future I plan to merge post and reply as one
     if (type === "follow") {
       query = `INSERT INTO user_follows (follower_id, followed_id) VALUES (?, ?);`;
     } else if (type === "unfollow") {
       query = `DELETE FROM user_follows WHERE follower_id = ? AND followed_id = ?;`;
     }
     const result = await db.executeResult(query, [followerId, followedId]);
-
-    console.log("result:", result);
 
     if (result[0].affectedRows !== 1) {
       return false;

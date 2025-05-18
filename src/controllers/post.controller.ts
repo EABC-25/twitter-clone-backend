@@ -170,8 +170,8 @@ export const addPost = async (req: Request, res: Response) => {
   try {
     const { html, media, mediaPublicId, mediaTypes, user } = req.body;
 
-    if (user.postCount === 10) {
-      throw new CustomError("Post limit already reached", 403);
+    if (user[0].postCount >= 1) {
+      throw new CustomError("Post limit already reached!", 403);
     }
 
     let sanitizedHtml: string | null = null;
@@ -243,6 +243,10 @@ export const updatePostLikes = async (req: Request, res: Response) => {
 export const addReply = async (req: Request, res: Response) => {
   try {
     const { html, postId, user } = req.body;
+
+    if (user[0].replyCount >= 0) {
+      throw new CustomError("Replies limit already reached!", 403);
+    }
 
     const resPost = await getPostFromDb(
       "SELECT userId FROM posts WHERE postId = ?",
@@ -430,8 +434,9 @@ export const deletePost = async (req: Request, res: Response) => {
 export const deleteReply = async (req: Request, res: Response) => {
   try {
     const { replyId, postId } = req.query;
+    const { userId } = req.body.user[0];
 
-    if (!(await deleteReplyInDb(replyId as string, postId as string))) {
+    if (!(await deleteReplyInDb(replyId as string, postId as string, userId))) {
       throw new CustomError("DB: Operation failed!", 500);
     }
 

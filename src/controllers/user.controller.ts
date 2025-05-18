@@ -231,7 +231,8 @@ export const updateUserProfile = async (req: Request, res: Response) => {
     const updatesCopy: {
       profilePicture: null | string;
       headerPicture: null | string;
-      mediaPublicId: string[];
+      profilePictureMediaId: null | string;
+      headerPictureMediaId: null | string;
       displayName: null | string;
       bioText: null | string;
       dateOfBirth: null | string;
@@ -242,60 +243,37 @@ export const updateUserProfile = async (req: Request, res: Response) => {
       throw new CustomError("Unauthorized access!", 401);
     }
 
-    // this is just so that we can delete media uploaded if everything fails..
-    const hpId: string | null =
-      updatesCopy.headerPicture && updates.mediaPublicId[1];
-    const ppId: string | null =
-      updatesCopy.profilePicture && updates.mediaPublicId[0];
-
     let updateKeys: string[] = [];
     let updateValues: string[] = [];
     let updateStr: string = "";
 
     Object.keys(updatesCopy)
-      .slice(0, 6) // remove email
+      .slice(0, 7) // remove email, profilePictureActive and headerPictureActive
       .forEach(v => {
         if (updatesCopy[v] !== null) {
-          console.log(Array.isArray(updatesCopy[v]));
-          const u: string = !Array.isArray(updatesCopy[v])
-            ? updatesCopy[v]
-            : "";
-
-          const m: string =
-            Array.isArray(updatesCopy[v]) && updates[v].length !== 0
-              ? updatesCopy[v].join(",")
-              : null;
-
-          if (u) {
-            updateValues.push(u);
-            updateKeys.push(` ${v} = ?`);
-          }
-
-          if (m) {
-            updateValues.push(m);
-            updateKeys.push(` ${v} = ?`);
-          }
+          updateValues.push(updatesCopy[v]);
+          updateKeys.push(` ${v} = ?`);
         }
       });
 
     updateStr = updateKeys.join(",");
 
-    let query: string = `UPDATE users SET${updateStr} WHERE userId = ?`;
+    let query: string = `UPDATE users SET${updateStr}, userInfoChangeCount = userInfoChangeCount + 1 WHERE userId = ?`;
 
-    const updatedUser = await updateUserInDb(
+    const prevMedia = await updateUserInDb(
       query,
       [...updateValues, user[0].userId],
       user[0].userId
     );
 
-    if (!updatedUser.updatedUser) {
+    if (!prevMedia) {
       //revert media upload if unsuccessful
       if (updatesCopy.profilePicture) {
-        await deleteMedia(ppId, "image");
+        await deleteMedia(updatesCopy.profilePictureMediaId, "image");
       }
 
       if (updatesCopy.headerPicture) {
-        await deleteMedia(hpId, "image");
+        await deleteMedia(updatesCopy.headerPictureMediaId, "image");
       }
 
       throw new CustomError(
@@ -304,27 +282,13 @@ export const updateUserProfile = async (req: Request, res: Response) => {
       );
     }
 
-    const dualMediaFlag =
-      updatedUser.prevMedia.profilePicture &&
-      updatedUser.prevMedia.headerPicture;
-    console.log(updatedUser);
+    // backend needs to initiate deletion of previously uploaded media if user has uploaded a new one. That's why we returned prevMedia object from db method
+    if (updatesCopy.profilePicture && prevMedia.profilePictureMediaId) {
+      await deleteMedia(prevMedia.profilePictureMediaId, "image");
+    }
 
-    const profileMediaFlag =
-      updatedUser.prevMedia.profilePicture &&
-      !updatedUser.prevMedia.headerPicture;
-
-    const headerMediaFlag =
-      !updatedUser.prevMedia.profilePicture &&
-      updatedUser.prevMedia.headerPicture;
-
-    if (dualMediaFlag) {
-      const split = updatedUser.prevMedia.mediaPublicId.split(",");
-      await deleteMedia(split[0], "image");
-      await deleteMedia(split[1], "image");
-    } else if (profileMediaFlag) {
-      await deleteMedia(updatedUser.prevMedia.mediaPublicId, "image");
-    } else if (headerMediaFlag) {
-      await deleteMedia(updatedUser.prevMedia.mediaPublicId, "image");
+    if (updatesCopy.headerPicture && prevMedia.headerPictureMediaId) {
+      await deleteMedia(prevMedia.headerPictureMediaId, "image");
     }
 
     res.status(200).json({
@@ -396,7 +360,7 @@ export const updateUserFollows = async (req: Request, res: Response) => {
 export const getUsersForSearch = async (req: Request, res: Response) => {
   try {
     const data = await getUsersSearchedFromDb();
-    console.log(data);
+
     res.status(200).json({
       users: data,
     });
