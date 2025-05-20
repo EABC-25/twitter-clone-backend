@@ -228,6 +228,12 @@ export const updateUserProfile = async (req: Request, res: Response) => {
   try {
     const { updates, user } = req.body;
 
+    if (
+      user[0].userInfoChangeCount >= process.env.USER_INFO_CHANGE_COUNT_LIMIT
+    ) {
+      throw new CustomError("User info change limit already reached!", 403);
+    }
+
     const updatesCopy: {
       profilePicture: null | string;
       headerPicture: null | string;

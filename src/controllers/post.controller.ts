@@ -170,7 +170,7 @@ export const addPost = async (req: Request, res: Response) => {
   try {
     const { html, media, mediaPublicId, mediaTypes, user } = req.body;
 
-    if (user[0].postCount >= 1) {
+    if (user[0].postCount >= process.env.POST_COUNT_LIMIT) {
       throw new CustomError("Post limit already reached!", 403);
     }
 
@@ -244,7 +244,7 @@ export const addReply = async (req: Request, res: Response) => {
   try {
     const { html, postId, user } = req.body;
 
-    if (user[0].replyCount >= 0) {
+    if (user[0].replyCount >= process.env.REPLY_COUNT_LIMIT) {
       throw new CustomError("Replies limit already reached!", 403);
     }
 
