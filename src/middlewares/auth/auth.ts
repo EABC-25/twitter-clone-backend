@@ -42,6 +42,8 @@ export const protect = async (
       throw new CustomError("DB: User not found!", 404);
     }
 
+    // console.log(results);
+
     req.body.user = results;
 
     next();

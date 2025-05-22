@@ -3,6 +3,9 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+import xss from "xss-clean";
 
 // init env
 dotenv.config();
@@ -23,13 +26,26 @@ const corsOptions = {
   credentials: true, // Allow cookies and other credentials
 };
 
+// init ratelimiter
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: "Too many requests, please try again later.",
+});
+
 // init methods and routes
+
 app.use(cors(corsOptions));
+app.use(helmet());
+app.use(xss());
 app.use(express.json());
 app.use(cookieParser());
-app.use("/api/v1/auth", authRoutes);
-app.use("/api/v1/user", userRoutes);
-app.use("/api/v1/post", postRoutes);
+app.disable("x-powered-by");
+app.use("/api/v1/auth", authLimiter, authRoutes);
+app.use("/api/v1/user", authLimiter, userRoutes);
+app.use("/api/v1/post", authLimiter, postRoutes);
 
 // init server
 app.listen(port, () => {

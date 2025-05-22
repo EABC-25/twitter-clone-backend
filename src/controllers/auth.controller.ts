@@ -1,8 +1,6 @@
-import { type Request, type Response, type NextFunction } from "express";
-import jwt from "jsonwebtoken";
+import { type Request, type Response } from "express";
 import validator from "validator";
 import {
-  type User,
   type NewUser,
   type CookieOptions,
   CustomError,
@@ -12,15 +10,11 @@ import {
   generateVerificationToken,
   generateHashedToken,
   sendEmail,
-  getUsersFromDb,
   getUserFromDb,
-  getUserLikedPostsFromDb,
   checkUserWithEmail,
   addUserToDb,
-  deleteUserFromDb,
   verifyUserInDb,
   generateJWToken,
-  getUserFollowsCountFromDb,
 } from "../utils";
 
 export const checkToken = async (req: Request, res: Response) => {
@@ -207,15 +201,14 @@ export const login = async (req: Request, res: Response) => {
 
     console.log(results);
 
-    const v = results[0].verified ? results[0].verified[0] === 1 : false;
-
-    console.log(v);
-    if (!v) {
-      throw new CustomError("User: User is not yet verified!", 403);
-    }
-
     if (results.length <= 0) {
       throw new CustomError("DB: User/Email not found!", 404);
+    }
+
+    const v = results[0].verified ? results[0].verified[0] === 1 : false;
+
+    if (!v) {
+      throw new CustomError("User: User is not yet verified!", 403);
     }
 
     const isMatching = await comparePassword(password, results[0].password);

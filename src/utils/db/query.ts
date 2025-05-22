@@ -1,11 +1,8 @@
-import { type RowDataPacket, type ResultSetHeader } from "mysql2/promise";
-import pool from "../../db";
+import { type RowDataPacket } from "mysql2/promise";
 import db from "../../db/index";
 import {
   type User,
   type NewUser,
-  type UserByToken,
-  type UpdatedUser,
   type NewPost,
   type Post,
   type NewReply,
@@ -13,8 +10,6 @@ import {
   type UserFollows,
   type UserSearch,
 } from "../types/types";
-
-import { CustomError } from "../error/CustomError";
 
 export const getUsersFromDb = async (): Promise<User[]> => {
   const rows = await db.executeRows(`SELECT * FROM users`);
@@ -133,6 +128,7 @@ export const deleteUserFromDb = async (email: string): Promise<boolean> => {
 };
 
 export const addPostToDb = async (newPost: NewPost): Promise<Post | null> => {
+  console.log(newPost);
   const resultId = await db.executeRows(`SELECT UUID() AS uuid;`);
 
   const newUuid = resultId[0][0].uuid;

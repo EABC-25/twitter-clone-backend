@@ -12,6 +12,16 @@ export const handleError = (err: unknown, res: Response) => {
 
   console.error("Error: ", err);
 
+  if (errCode === 500) {
+    res.status(500).json({
+      success: false,
+      error: errCode,
+      message: "Something went wrong, please try again later.",
+    });
+
+    return;
+  }
+
   res.status(errCode).json({
     success: false,
     error: errCode,

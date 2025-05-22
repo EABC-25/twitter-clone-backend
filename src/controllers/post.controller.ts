@@ -1,8 +1,7 @@
-import { type Request, type Response, type NextFunction } from "express";
+import { type Request, type Response } from "express";
 import sanitizeHtml from "sanitize-html";
 import {
   type ResponsePosts,
-  type ResponsePost,
   type ResponseReplies,
   CustomError,
   handleError,
@@ -12,7 +11,6 @@ import {
   deleteMedia,
   addPostToDb,
   deletePostInDb,
-  checkPostInDb,
   checkPostsInDb,
   getPostsFromDb,
   getPostFromDb,
@@ -63,6 +61,8 @@ export const getHomePosts = async (req: Request, res: Response) => {
     const limit: number = 30;
     const offset = (pageNum - 1) * limit;
     const results = await getPostsFromDb(limit, offset);
+
+    console.log(results);
 
     if (pageNum === 1 && results.length <= 0) {
       console.log(results);
@@ -212,6 +212,8 @@ export const addPost = async (req: Request, res: Response) => {
     if (!newPost || newPost === null) {
       throw new CustomError("DB: Failed to save post!", 500);
     }
+
+    console.log(newPost.createdAt);
 
     res.status(201).json(newPost);
   } catch (err) {
