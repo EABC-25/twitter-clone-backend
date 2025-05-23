@@ -128,7 +128,6 @@ export const deleteUserFromDb = async (email: string): Promise<boolean> => {
 };
 
 export const addPostToDb = async (newPost: NewPost): Promise<Post | null> => {
-  console.log(newPost);
   const resultId = await db.executeRows(`SELECT UUID() AS uuid;`);
 
   const newUuid = resultId[0][0].uuid;
@@ -168,12 +167,12 @@ export const addPostToDb = async (newPost: NewPost): Promise<Post | null> => {
 
   if (resultNewPost[0].length === 0) return null;
 
-  const resultLimits = await db.executeResult(
-    `UPDATE users SET postCount = postCount + 1 WHERE userId = ?`,
-    [newPost.userId]
-  );
+  // const resultLimits = await db.executeResult(
+  //   `UPDATE users SET postCount = postCount + 1 WHERE userId = ?`,
+  //   [newPost.userId]
+  // );
 
-  if (resultLimits[0].affectedRows === 0) return null;
+  // if (resultLimits[0].affectedRows === 0) return null;
 
   return resultNewPost[0][0] as Post;
 };
@@ -187,7 +186,7 @@ export const deletePostInDb = async (
   replyCount: number;
 } | null> => {
   const mediaResult = await db.executeResult(
-    `SELECT mediaPublicId, mediaTypes, replyCount FROM posts WHERE postId = ?`,
+    `SELECT mediaPublicId, mediaTypes FROM posts WHERE postId = ?`,
     [postId]
   );
   const deletePost = await db.executeResult(
@@ -203,18 +202,16 @@ export const deletePostInDb = async (
     db.executeResult(`DELETE FROM post_likes WHERE postId = ?`, [postId])
   );
 
-  const replyCount = mediaResult[0][0].replyCount;
+  // const replyCount = mediaResult[0][0].replyCount;
 
-  const deleteLimits = Promise.resolve(
-    db.executeResult(
-      `UPDATE users SET postCount = GREATEST(postCount - 1, 0), replyCount = GREATEST(replyCount - ?, 0) WHERE userId = ?`,
-      [replyCount, userId]
-    )
-  );
+  // const deleteLimits = Promise.resolve(
+  //   db.executeResult(
+  //     `UPDATE users SET postCount = GREATEST(postCount - 1, 0), replyCount = GREATEST(replyCount - ?, 0) WHERE userId = ?`,
+  //     [replyCount, userId]
+  //   )
+  // );
 
-  Promise.all([deleteReply, deleteLikes, deleteLimits]).then(_ => {
-    // console.log(values);
-  });
+  Promise.all([deleteReply, deleteLikes]).then(_ => {});
 
   if (deletePost[0].affectedRows >= 1) {
     return mediaResult[0][0];
@@ -267,7 +264,6 @@ export const getPostsFromDb = async (
   );
 
   // adding one more to limit here so that we can signal frontend if there are more posts to retrieve after this batch through type ResponsePost.nextPage
-  // console.log(rows);
   return rows[0] as Post[];
 };
 
@@ -382,12 +378,12 @@ export const addReplyToDb = async (
 
   if (resultNewReply[0].length === 0) return null;
 
-  const resultLimits = await db.executeResult(
-    `UPDATE users SET replyCount = replyCount + 1 WHERE userId = ?`,
-    [newReply.replierId]
-  );
+  // const resultLimits = await db.executeResult(
+  //   `UPDATE users SET replyCount = replyCount + 1 WHERE userId = ?`,
+  //   [newReply.replierId]
+  // );
 
-  if (resultLimits[0].affectedRows === 0) return null;
+  // if (resultLimits[0].affectedRows === 0) return null;
 
   return resultNewReply[0][0] as Reply;
 };
@@ -455,15 +451,11 @@ export const updateReplyLikesInDb = async (
       userId,
     ]);
 
-    console.log("replyLikesResult:", replyLikesResult);
-
     if (replyLikesResult[0].affectedRows !== 1) {
       return false;
     }
 
     const replyResult = await db.executeResult(replyQuery, [replyId]);
-
-    console.log("replyResult: ", replyResult);
 
     if (replyResult[0].affectedRows !== 1) {
       return false;
@@ -496,16 +488,14 @@ export const deleteReplyInDb = async (
     )
   );
 
-  const deleteLimits = Promise.resolve(
-    db.executeResult(
-      `UPDATE users SET replyCount = GREATEST(replyCount - 1, 0) WHERE userId = ?`,
-      [userId]
-    )
-  );
+  // const deleteLimits = Promise.resolve(
+  //   db.executeResult(
+  //     `UPDATE users SET replyCount = GREATEST(replyCount - 1, 0) WHERE userId = ?`,
+  //     [userId]
+  //   )
+  // );
 
-  Promise.all([deleteReplyCount, deleteLikes, deleteLimits]).then(_ => {
-    // console.log(values);
-  });
+  Promise.all([deleteReplyCount, deleteLikes]).then(_ => {});
 
   if (deleteReply[0].affectedRows <= 0) {
     return false;
@@ -640,6 +630,37 @@ export const getUsersSearchedFromDb = async (): Promise<UserSearch[]> => {
   return rows[0] as UserSearch[];
 };
 
+export const getUserPostsRepliesLimits = async (
+  userId: string
+): Promise<{
+  postCount: number;
+  replyCount: number;
+}> => {
+  const postsResult = await db.executeRows(
+    `SELECT COUNT(*) FROM posts WHERE userId = ?`,
+    [userId]
+  );
+  const repliesResult = await db.executeRows(
+    `SELECT COUNT(*) FROM replies WHERE replierId = ?`,
+    [userId]
+  );
+
+  return {
+    postCount: postsResult[0][0]["COUNT(*)"],
+    replyCount: repliesResult[0][0]["COUNT(*)"],
+  };
+};
+
+export const getUserCountInDb = async (): Promise<{
+  userCount: number;
+}> => {
+  const result = await db.executeRows(`SELECT COUNT(*) FROM users`);
+
+  return {
+    userCount: result[0][0]["COUNT(*)"],
+  };
+};
+
 // NEED TO REFACTOR ALL QUERIES TO A SINGLE FUNCTION THAT CAN TAKE IN QUERY AND QUERY PARAMS AS ARGS FOR DRY LIKE THE BELOW
 
 // CATEGORIZE FOR SINGLE TO MULTIPLE QPS???
@@ -649,8 +670,6 @@ export const runSingleQueryAndParams = async (
   qp: string
 ): Promise<boolean> => {
   const result = await db.executeResult(q, [qp]);
-
-  console.log(result);
 
   if (result[0].affectedRows < 1) {
     return false;

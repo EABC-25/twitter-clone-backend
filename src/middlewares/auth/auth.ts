@@ -34,7 +34,7 @@ export const protect = async (
     // we need to make sql query to get user via decoded.id === userId in the db
 
     const results = await getUserFromDb(
-      `SELECT userId, username, email, createdAt, displayName, displayNamePermanent, dateOfBirth, bioText, verified, profilePicture, headerPicture, postCount, replyCount, userInfoChangeCount FROM users WHERE userId = ?`,
+      `SELECT userId, username, email, createdAt, displayName, displayNamePermanent, dateOfBirth, bioText, verified, profilePicture, headerPicture, userInfoChangeCount FROM users WHERE userId = ?`,
       decoded.userId as string
     );
 

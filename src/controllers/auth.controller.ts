@@ -15,6 +15,7 @@ import {
   addUserToDb,
   verifyUserInDb,
   generateJWToken,
+  getUserCountInDb,
 } from "../utils";
 
 export const checkToken = async (req: Request, res: Response) => {
@@ -41,15 +42,15 @@ export const checkEmail = async (_, res: Response) => {
 
 export const register = async (req: Request, res: Response) => {
   try {
+    const { userCount } = await getUserCountInDb();
+    const userLimit = parseInt(process.env.USER_COUNT_LIMIT);
+
+    if (userCount >= userLimit) {
+      throw new CustomError("User count limit already reached!", 500);
+    }
+
     const { username, email, password, dateOfBirth } = req.body;
 
-    console.log(username, email, password, dateOfBirth);
-
-    // await sendEmail(req, "testToken", "testEmail");
-
-    // return;
-
-    // of course we need to block usage of existing routes... although we can actually block this at the front end instead you know...
     if (
       username === "landing" ||
       username === "home" ||
@@ -72,9 +73,6 @@ export const register = async (req: Request, res: Response) => {
       `SELECT EXISTS(SELECT 1 FROM users WHERE email = ?)`,
       email as string
     );
-
-    console.log(existingUsername);
-    console.log(Object.values(existingUsername[0]));
 
     // in the future, we need to configure the response to also include specific codes that differentiate the existence of username or email instead of using 401, 403 or 404
     if (
@@ -152,13 +150,11 @@ export const verifyEmail = async (req: Request, res: Response) => {
       throw new CustomError("DB: User not found!", 404);
     }
 
-    console.log(results);
-
     const processed = results.map(row => ({
       ...row,
       verified: row.verified ? row.verified[0] === 1 : false,
     }));
-    console.log(processed);
+
     if (processed[0].verified) {
       throw new CustomError("User: User is already verified!", 403);
     }
@@ -198,8 +194,6 @@ export const login = async (req: Request, res: Response) => {
       `SELECT userId, verified, password FROM users WHERE email = ?`,
       email as string
     );
-
-    console.log(results);
 
     if (results.length <= 0) {
       throw new CustomError("DB: User/Email not found!", 404);
@@ -259,7 +253,6 @@ const sendTokenizedResponse = async (
   } else {
     const jwToken = generateJWToken(userId);
 
-    console.log("token done, sending..");
     res.cookie("token", jwToken, options);
     res.status(statusCode).json({ success: true });
   }

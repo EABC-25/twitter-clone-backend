@@ -12,6 +12,8 @@ import {
   getUserFollowsFromDb,
   updateUserFollowsInDb,
   getUsersSearchedFromDb,
+  getUserPostsRepliesLimits,
+  getUserCountInDb,
 } from "../utils";
 
 export const getUsers = async (_, res: Response) => {
@@ -84,8 +86,6 @@ export const getUserWithToken = async (req: Request, res: Response) => {
       verified,
       profilePicture,
       headerPicture,
-      postCount,
-      replyCount,
       userInfoChangeCount,
     } = req.body.user[0];
 
@@ -101,6 +101,7 @@ export const getUserWithToken = async (req: Request, res: Response) => {
     const lpResMappedVals: string[] = lpRes.map(obj => obj.postId);
 
     const userFollowsCount = await getUserFollowsCountFromDb(userId);
+    const userPostsRepliesCount = await getUserPostsRepliesLimits(userId);
 
     const user = {
       username,
@@ -120,8 +121,8 @@ export const getUserWithToken = async (req: Request, res: Response) => {
       profilePicture,
       headerPicture,
       userFollowsCount,
-      postCount,
-      replyCount,
+      postCount: userPostsRepliesCount.postCount,
+      replyCount: userPostsRepliesCount.replyCount,
       userInfoChangeCount,
     };
     // console.log("user: ", user);
@@ -355,6 +356,35 @@ export const getUsersForSearch = async (req: Request, res: Response) => {
 
     res.status(200).json({
       users: data,
+    });
+  } catch (err) {
+    handleError(err, res);
+  }
+};
+
+export const getUserPostsRepliesLimitsTest = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const data = await getUserPostsRepliesLimits(
+      "285d07a2-2736-11f0-b3fd-88a4c22b5dbc"
+    );
+
+    res.status(200).json({
+      limits: data,
+    });
+  } catch (err) {
+    handleError(err, res);
+  }
+};
+
+export const getUserCount = async (req: Request, res: Response) => {
+  try {
+    const { userCount } = await getUserCountInDb();
+
+    res.status(200).json({
+      userCount,
     });
   } catch (err) {
     handleError(err, res);

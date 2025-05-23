@@ -62,12 +62,6 @@ export const getHomePosts = async (req: Request, res: Response) => {
     const offset = (pageNum - 1) * limit;
     const results = await getPostsFromDb(limit, offset);
 
-    console.log(results);
-
-    if (pageNum === 1 && results.length <= 0) {
-      console.log(results);
-    }
-
     if (results.length <= 0) {
       throw new CustomError("DB: No more posts to return.", 404);
     }
@@ -213,8 +207,6 @@ export const addPost = async (req: Request, res: Response) => {
       throw new CustomError("DB: Failed to save post!", 500);
     }
 
-    console.log(newPost.createdAt);
-
     res.status(201).json(newPost);
   } catch (err) {
     handleError(err, res);
@@ -224,11 +216,9 @@ export const addPost = async (req: Request, res: Response) => {
 export const updatePostLikes = async (req: Request, res: Response) => {
   try {
     const { type, id, user } = req.body;
-    console.log(type, id, user[0].userId);
 
     const result = await updatePostLikesInDb(type, id, user[0].userId);
 
-    console.log(result);
     if (!result) {
       throw new CustomError("DB: Operation failed!", 404);
     }
@@ -280,8 +270,6 @@ export const addReply = async (req: Request, res: Response) => {
       throw new CustomError("Empty post data received.", 404);
     }
 
-    // throw new CustomError("test error.", 400);
-
     const newReply = await addReplyToDb({
       postId: postId,
       replierId: user[0].userId,
@@ -292,8 +280,6 @@ export const addReply = async (req: Request, res: Response) => {
     if (!newReply || newReply === null) {
       throw new CustomError("DB: Failed to save reply!", 500);
     }
-
-    console.log("newReply: ", newReply);
 
     res.status(201).json(newReply);
   } catch (err) {
@@ -385,11 +371,9 @@ export const getReply = async (req: Request, res: Response) => {
 export const updateReplyLikes = async (req: Request, res: Response) => {
   try {
     const { type, id, user } = req.body;
-    console.log(type, id, user[0].userId);
 
     const result = await updateReplyLikesInDb(type, id, user[0].userId);
 
-    console.log(result);
     if (!result) {
       throw new CustomError("DB: Operation failed!", 404);
     }

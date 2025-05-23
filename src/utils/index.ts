@@ -50,6 +50,8 @@ import {
   getUserFollowsFromDb,
   updateUserFollowsInDb,
   getUsersSearchedFromDb,
+  getUserPostsRepliesLimits,
+  getUserCountInDb,
 } from "./db/query";
 import { sendEmail } from "./email/email";
 import cloudinaryConfig from "./config/cloudinary.config";
@@ -107,4 +109,6 @@ export {
   getUserFollowsFromDb,
   updateUserFollowsInDb,
   getUsersSearchedFromDb,
+  getUserPostsRepliesLimits,
+  getUserCountInDb,
 };
