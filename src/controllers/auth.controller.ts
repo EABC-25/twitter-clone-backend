@@ -9,7 +9,6 @@ import {
   hashPassword,
   generateVerificationToken,
   generateHashedToken,
-  sendEmail,
   getUserFromDb,
   checkUserWithEmail,
   addUserToDb,
@@ -17,6 +16,22 @@ import {
   generateJWToken,
   getUserCountInDb,
 } from "../utils";
+
+// we need to add all possible routes here like "settings/account" or just block usage of \ or any special character as username
+const frontendRoutes = [
+  "landing",
+  "home",
+  "emailVerification",
+  "settings",
+  "explore",
+  "notifications",
+  "messages",
+  "bookmarks",
+  "communities",
+  "games",
+  "surprise",
+  "media",
+];
 
 export const checkToken = async (req: Request, res: Response) => {
   try {
@@ -51,12 +66,7 @@ export const register = async (req: Request, res: Response) => {
 
     const { username, email, password, dateOfBirth } = req.body;
 
-    if (
-      username === "landing" ||
-      username === "home" ||
-      username === "emailVerification" ||
-      username === "settings"
-    ) {
+    if (frontendRoutes.includes(username)) {
       throw new CustomError("DB: User already exists!", 403);
     }
 
@@ -94,6 +104,7 @@ export const register = async (req: Request, res: Response) => {
 
     const hashedPassword = await hashPassword(password);
     const { token, hashedToken, expiration } = generateVerificationToken();
+    // since we removed email verification due to financial reasons... we need to mark verified as true in query
     const newUser: NewUser = {
       username: username as string,
       email: email as string,
@@ -111,12 +122,12 @@ export const register = async (req: Request, res: Response) => {
       );
     }
 
-    if (!(await sendEmail(req, token, email))) {
-      // FALLBACK: we should either make a function that makes sure email was sent, or else we delete user in db so that user can use the email again to create a new user which will then send the email
-      // As long as email is sent initially - user can just click the link in the email to either finish the verification or resend email again if it fails
-      // GOOD SOLUTION: or we can create a route and frontend functionality like a button or link that the user can use to resend the email... YUP THIS IS A MORE PROPER SOLUTION! WE CAN SEND EMAIL ONLY AFTER EVERY 60 SECONDS
-      throw new CustomError("Email: Email sending failed!", 501);
-    }
+    // if (!(await sendEmail(req, token, email))) {
+    //   // FALLBACK: we should either make a function that makes sure email was sent, or else we delete user in db so that user can use the email again to create a new user which will then send the email
+    //   // As long as email is sent initially - user can just click the link in the email to either finish the verification or resend email again if it fails
+    //   // GOOD SOLUTION: or we can create a route and frontend functionality like a button or link that the user can use to resend the email... YUP THIS IS A MORE PROPER SOLUTION! WE CAN SEND EMAIL ONLY AFTER EVERY 60 SECONDS
+    //   throw new CustomError("Email: Email sending failed!", 501);
+    // }
 
     res.status(201).json({
       success: true,
