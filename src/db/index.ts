@@ -4,12 +4,12 @@ import { type PoolOptions } from "mysql2/promise";
 import MySQL from "./db";
 
 const access: PoolOptions = {
-  host: process.env.DB_HOST,
+  host: "127.0.0.1",
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_DATABASE,
-  port: parseInt(process.env.DB_PORT),
-  socketPath: process.env.SOCKET_PATH,
+  port: 3306,
+  socketPath: "/var/run/mysqld/mysqld.sock",
   waitForConnections: true,
   connectionLimit: 20,
   queueLimit: 0,
