@@ -6,10 +6,12 @@ import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import xss from "xss-clean";
-import db from "./db";
 
 // init env
 dotenv.config();
+
+// import db
+import db from "./db";
 
 // import files, routes
 import authRoutes from "./routes/auth.route";
