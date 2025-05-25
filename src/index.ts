@@ -6,6 +6,7 @@ import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import xss from "xss-clean";
+import db from "./db";
 
 // init env
 dotenv.config();
@@ -35,7 +36,7 @@ const authLimiter = rateLimit({
   message: "Too many requests, please try again later.",
 });
 
-// init methods and routes
+// init methods, routes and db
 
 app.use(cors(corsOptions));
 app.use(helmet());
@@ -43,9 +44,20 @@ app.use(xss());
 app.use(express.json());
 app.use(cookieParser());
 app.disable("x-powered-by");
+
+db.connect();
+
 app.use("/api/v1/auth", authLimiter, authRoutes);
 app.use("/api/v1/user", authLimiter, userRoutes);
 app.use("/api/v1/post", authLimiter, postRoutes);
+app.get("/api/health", async (req, res) => {
+  try {
+    const [rows] = await db.getPool().query("SELECT 1 + 1 AS result");
+    res.json({ success: true, db: rows });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err });
+  }
+});
 
 // init server
 app.listen(port, () => {

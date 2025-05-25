@@ -15,6 +15,16 @@ class MySQL {
     this.conn = createPool(this.credentials);
   }
 
+  public async connect() {
+    try {
+      const connection = await this.conn.getConnection();
+      console.log("✅ Connected to this server's MySQL database.");
+      connection.release();
+    } catch (error) {
+      console.error("❌ Failed to connect to MySQL:", error);
+    }
+  }
+
   /** A random method to simulate a step before to get the class methods */
   private ensureConnection() {
     if (!this?.conn) this.conn = createPool(this.credentials);
@@ -90,7 +100,7 @@ class MySQL {
   }
 
   /** Expose the Pool Connection */
-  public connection() {
+  public getPool() {
     return this.conn;
   }
 }
