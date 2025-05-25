@@ -9,6 +9,7 @@ const access: PoolOptions = {
   password: process.env.DB_PASSWORD,
   database: process.env.DB_DATABASE,
   port: parseInt(process.env.DB_PORT),
+  socketPath: process.env.SOCKET_PATH,
   waitForConnections: true,
   connectionLimit: 20,
   queueLimit: 0,
