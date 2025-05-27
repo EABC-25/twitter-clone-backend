@@ -18,12 +18,14 @@ export const comparePassword = async (
 };
 
 export const generateJWToken = (userId: string): string => {
-  const secret = process.env.JWT_SECRET as string;
-  const expiresIn = process.env.JWT_EXPIRE || "1d";
+  const payload: object = { userId: userId };
+  const secret: jwt.Secret = process.env.JWT_SECRET as string;
+  const jwtOptions: jwt.SignOptions = {
+    expiresIn: process.env.JWT_EXPIRE || "1d",
+  };
 
-  const token = jwt.sign({ userId }, secret, {
-    expiresIn,
-  });
+  const token = jwt.sign(payload, secret, jwtOptions);
+
   return token;
 };
 

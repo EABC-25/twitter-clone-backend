@@ -255,8 +255,12 @@ const sendTokenizedResponse = async (
   const options: CookieOptions = {
     httpOnly: true,
     expires: new Date(
-      Date.now() + parseInt(process.env.JWT_COOKIE_EXPIRE as string) ||
-        1 * 60 * 1000 * 60 * 24
+      Date.now() +
+        (parseInt(process.env.JWT_COOKIE_EXPIRE as string) || 1) *
+          60 *
+          1000 *
+          60 *
+          24
     ), // 24 hours or 1 day
     sameSite: production ? "none" : "strict",
     secure: production ? true : false,
