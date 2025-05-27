@@ -9,7 +9,6 @@ const access: PoolOptions = {
   password: process.env.DB_PASSWORD,
   database: process.env.DB_DATABASE,
   port: 3306,
-  socketPath: "/var/run/mysqld/mysqld.sock",
   waitForConnections: true,
   connectionLimit: 20,
   queueLimit: 0,
