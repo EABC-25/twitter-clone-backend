@@ -5,7 +5,6 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
-import xss from "xss-clean";
 
 // init env
 dotenv.config();
@@ -17,6 +16,7 @@ import db from "./db";
 import authRoutes from "./routes/auth.route";
 import userRoutes from "./routes/user.route";
 import postRoutes from "./routes/post.route";
+import testRoutes from "./routes/test.route";
 
 // init app and port
 const app = express();
@@ -24,7 +24,7 @@ const port = 8000;
 
 // Configure CORS to allow requests from localhost:3000
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || "http://localhost:8080",
+  origin: process.env.FRONTEND_URL,
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   credentials: true, // Allow cookies and other credentials
 };
@@ -42,7 +42,6 @@ const authLimiter = rateLimit({
 
 app.use(cors(corsOptions));
 app.use(helmet());
-app.use(xss());
 app.use(express.json());
 app.use(cookieParser());
 app.disable("x-powered-by");
@@ -52,6 +51,7 @@ db.connect();
 app.use("/api/v1/auth", authLimiter, authRoutes);
 app.use("/api/v1/user", authLimiter, userRoutes);
 app.use("/api/v1/post", authLimiter, postRoutes);
+app.use("/api/v1/test", authLimiter, testRoutes);
 app.get("/api/health", async (req, res) => {
   try {
     const [rows] = await db.getPool().query("SELECT 1 + 1 AS result");

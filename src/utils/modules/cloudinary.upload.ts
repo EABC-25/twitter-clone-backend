@@ -1,7 +1,7 @@
 import { v2 as cloudinary } from "cloudinary";
 import cloudinaryConfig from "../config/cloudinary.config";
 
-const apiSecret = cloudinaryConfig.api_secret;
+const apiSecret: string = cloudinaryConfig.api_secret as string;
 
 export const signUploadForm = () => {
   try {

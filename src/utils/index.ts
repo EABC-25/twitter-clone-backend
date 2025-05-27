@@ -3,7 +3,6 @@ import {
   type NewUser,
   type UpdatedUser,
   type EmailOptions,
-  type CookieOptions,
   type NewPost,
   type Post,
   type ResponsePosts,
@@ -13,6 +12,7 @@ import {
   type ResponseReplies,
   type UserFollows,
   type UserSearch,
+  type UserInfoUpdates,
 } from "./types/types";
 import { CustomError } from "./error/CustomError";
 import { handleError } from "./error/errorHandler";
@@ -62,7 +62,6 @@ export {
   type NewUser,
   type UpdatedUser,
   type EmailOptions,
-  type CookieOptions,
   type NewPost,
   type Post,
   type ResponsePosts,
@@ -72,6 +71,7 @@ export {
   type ResponseReplies,
   type UserFollows,
   type UserSearch,
+  type UserInfoUpdates,
   CustomError,
   handleError,
   comparePassword,

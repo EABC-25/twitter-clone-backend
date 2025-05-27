@@ -9,20 +9,20 @@ export const protect = async (
   next: NextFunction
 ) => {
   try {
-    let token: string;
-
-    if (req.cookies.token) {
-      token = req.cookies.token;
-    }
+    let token: string = req.cookies.token;
 
     if (!token) {
       throw new CustomError("Not authorized to access this route", 401);
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET) as jwt.JwtPayload;
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET as string
+    ) as jwt.JwtPayload;
 
     // decoded.iat and decoded.exp is in seconds therefore we need to multiply by 1000
-    const jwtExpired = Date.now() > decoded.exp * 1000 ? true : false;
+    const jwtExpired =
+      Date.now() > (decoded.exp ? decoded.exp : 0) * 1000 ? true : false;
 
     // console.log("expires in (seconds):", decoded.exp - decoded.iat);
 

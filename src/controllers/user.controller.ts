@@ -1,5 +1,6 @@
 import { type Request, type Response } from "express";
 import {
+  type UserInfoUpdates,
   CustomError,
   handleError,
   deleteMedia,
@@ -16,7 +17,7 @@ import {
   getUserCountInDb,
 } from "../utils";
 
-export const getUsers = async (_, res: Response) => {
+export const getUsers = async (req: Request, res: Response) => {
   try {
     const results = await getUsersFromDb();
     // console.log(results[0].createdAt instanceof Date);
@@ -216,21 +217,13 @@ export const updateUserProfile = async (req: Request, res: Response) => {
     const { updates, user } = req.body;
 
     if (
-      user[0].userInfoChangeCount >= process.env.USER_INFO_CHANGE_COUNT_LIMIT
+      user[0].userInfoChangeCount >=
+      (parseInt(process.env.USER_INFO_CHANGE_COUNT_LIMIT as string) || 10)
     ) {
       throw new CustomError("User info change limit already reached!", 403);
     }
 
-    const updatesCopy: {
-      profilePicture: null | string;
-      headerPicture: null | string;
-      profilePictureMediaId: null | string;
-      headerPictureMediaId: null | string;
-      displayName: null | string;
-      bioText: null | string;
-      dateOfBirth: null | string;
-      email: string;
-    } = { ...updates };
+    const updatesCopy: UserInfoUpdates = { ...updates };
 
     if (updatesCopy.email !== user[0].email) {
       throw new CustomError("Unauthorized access!", 401);
@@ -240,10 +233,12 @@ export const updateUserProfile = async (req: Request, res: Response) => {
     let updateValues: string[] = [];
     let updateStr: string = "";
 
-    Object.keys(updatesCopy)
+    type UpdatableKey = keyof UserInfoUpdates;
+
+    (Object.keys(updatesCopy) as UpdatableKey[])
       .slice(0, 7) // remove email, profilePictureActive and headerPictureActive
       .forEach(v => {
-        if (updatesCopy[v] !== null) {
+        if (updatesCopy[v]) {
           updateValues.push(updatesCopy[v]);
           updateKeys.push(` ${v} = ?`);
         }
@@ -261,11 +256,11 @@ export const updateUserProfile = async (req: Request, res: Response) => {
 
     if (!prevMedia) {
       //revert media upload if unsuccessful
-      if (updatesCopy.profilePicture) {
+      if (updatesCopy.profilePicture && updatesCopy.profilePictureMediaId) {
         await deleteMedia(updatesCopy.profilePictureMediaId, "image");
       }
 
-      if (updatesCopy.headerPicture) {
+      if (updatesCopy.headerPicture && updatesCopy.headerPictureMediaId) {
         await deleteMedia(updatesCopy.headerPictureMediaId, "image");
       }
 

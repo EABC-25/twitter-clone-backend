@@ -36,6 +36,10 @@ export const getUserFromDb = async (
 ): Promise<User[]> => {
   const rows = await db.executeRows(query, [index]);
 
+  // const user = { ...rows[0][0] };
+  // console.log(Object.prototype.toString.call(user.verified));
+  // user.verified = user.verified ? user.verified[0] === 1 : false;
+
   return rows[0] as User[];
 };
 
@@ -185,7 +189,7 @@ export const deletePostInDb = async (
   mediaTypes: string;
   replyCount: number;
 } | null> => {
-  const mediaResult = await db.executeResult(
+  const mediaResult = await db.executeRows(
     `SELECT mediaPublicId, mediaTypes FROM posts WHERE postId = ?`,
     [postId]
   );
@@ -214,7 +218,11 @@ export const deletePostInDb = async (
   Promise.all([deleteReply, deleteLikes]).then(_ => {});
 
   if (deletePost[0].affectedRows >= 1) {
-    return mediaResult[0][0];
+    return mediaResult[0][0] as {
+      mediaPublicId: string;
+      mediaTypes: string;
+      replyCount: number;
+    };
   }
   return null;
 };
@@ -299,32 +307,46 @@ export const updatePostLikesInDb = async (
   userId: string
 ): Promise<boolean> => {
   try {
-    let postLikesQuery: string;
-    let postQuery: string;
-
     if (type === "add") {
-      postLikesQuery = `INSERT INTO post_likes (postId, userId) VALUES (?, ?)`;
-      postQuery = `UPDATE posts SET likeCount = likeCount + 1 WHERE postId = ?`;
+      const postLikesQuery = `INSERT INTO post_likes (postId, userId) VALUES (?, ?)`;
+      const postQuery = `UPDATE posts SET likeCount = likeCount + 1 WHERE postId = ?`;
+      const postLikesResult = await db.executeResult(postLikesQuery, [
+        postId,
+        userId,
+      ]);
+
+      if (postLikesResult[0].affectedRows !== 1) {
+        return false;
+      }
+
+      const postResult = await db.executeResult(postQuery, [postId]);
+
+      if (postResult[0].affectedRows !== 1) {
+        return false;
+      }
+
+      return true;
     } else if (type === "remove") {
-      postLikesQuery = `DELETE FROM post_likes WHERE postId = ? AND userId = ?`;
-      postQuery = `UPDATE posts SET likeCount = GREATEST(likeCount - 1, 0) WHERE postId = ?`;
+      const postLikesQuery = `DELETE FROM post_likes WHERE postId = ? AND userId = ?`;
+      const postQuery = `UPDATE posts SET likeCount = GREATEST(likeCount - 1, 0) WHERE postId = ?`;
+      const postLikesResult = await db.executeResult(postLikesQuery, [
+        postId,
+        userId,
+      ]);
+
+      if (postLikesResult[0].affectedRows !== 1) {
+        return false;
+      }
+
+      const postResult = await db.executeResult(postQuery, [postId]);
+
+      if (postResult[0].affectedRows !== 1) {
+        return false;
+      }
+
+      return true;
     }
-    const postLikesResult = await db.executeResult(postLikesQuery, [
-      postId,
-      userId,
-    ]);
-
-    if (postLikesResult[0].affectedRows !== 1) {
-      return false;
-    }
-
-    const postResult = await db.executeResult(postQuery, [postId]);
-
-    if (postResult[0].affectedRows !== 1) {
-      return false;
-    }
-
-    return true;
+    return false;
   } catch (err) {
     return false;
   }
@@ -435,33 +457,47 @@ export const updateReplyLikesInDb = async (
   userId: string
 ): Promise<boolean> => {
   try {
-    let replyLikesQuery: string;
-    let replyQuery: string;
-
     // we actually will be putting reply likes in post_likes table since in the future I plan to merge post and reply as one
     if (type === "add") {
-      replyLikesQuery = `INSERT INTO post_likes (postId, userId) VALUES (?, ?)`;
-      replyQuery = `UPDATE replies SET likeCount = likeCount + 1 WHERE replyId = ?`;
+      const replyLikesQuery = `INSERT INTO post_likes (postId, userId) VALUES (?, ?)`;
+      const replyQuery = `UPDATE replies SET likeCount = likeCount + 1 WHERE replyId = ?`;
+      const replyLikesResult = await db.executeResult(replyLikesQuery, [
+        replyId,
+        userId,
+      ]);
+
+      if (replyLikesResult[0].affectedRows !== 1) {
+        return false;
+      }
+
+      const replyResult = await db.executeResult(replyQuery, [replyId]);
+
+      if (replyResult[0].affectedRows !== 1) {
+        return false;
+      }
+
+      return true;
     } else if (type === "remove") {
-      replyLikesQuery = `DELETE FROM post_likes WHERE postId = ? AND userId = ?`;
-      replyQuery = `UPDATE replies SET likeCount = GREATEST(likeCount - 1, 0) WHERE replyId = ?`;
+      const replyLikesQuery = `DELETE FROM post_likes WHERE postId = ? AND userId = ?`;
+      const replyQuery = `UPDATE replies SET likeCount = GREATEST(likeCount - 1, 0) WHERE replyId = ?`;
+      const replyLikesResult = await db.executeResult(replyLikesQuery, [
+        replyId,
+        userId,
+      ]);
+
+      if (replyLikesResult[0].affectedRows !== 1) {
+        return false;
+      }
+
+      const replyResult = await db.executeResult(replyQuery, [replyId]);
+
+      if (replyResult[0].affectedRows !== 1) {
+        return false;
+      }
+
+      return true;
     }
-    const replyLikesResult = await db.executeResult(replyLikesQuery, [
-      replyId,
-      userId,
-    ]);
-
-    if (replyLikesResult[0].affectedRows !== 1) {
-      return false;
-    }
-
-    const replyResult = await db.executeResult(replyQuery, [replyId]);
-
-    if (replyResult[0].affectedRows !== 1) {
-      return false;
-    }
-
-    return true;
+    return false;
   } catch (err) {
     return false;
   }
@@ -509,8 +545,8 @@ export const getUserFollowsCountFromDb = async (
 ): Promise<{
   followingCount: number;
   followersCount: number;
-  following: string[];
-  followers: string[];
+  following: string[] | null;
+  followers: string[] | null;
 } | null> => {
   const following = await db.executeRows(
     `
@@ -604,20 +640,27 @@ export const updateUserFollowsInDb = async (
   followedId: string
 ): Promise<boolean> => {
   try {
-    let query: string;
-
     if (type === "follow") {
-      query = `INSERT INTO user_follows (follower_id, followed_id) VALUES (?, ?);`;
+      const query = `INSERT INTO user_follows (follower_id, followed_id) VALUES (?, ?);`;
+      const result = await db.executeResult(query, [followerId, followedId]);
+
+      if (result[0].affectedRows !== 1) {
+        return false;
+      }
+
+      return true;
     } else if (type === "unfollow") {
-      query = `DELETE FROM user_follows WHERE follower_id = ? AND followed_id = ?;`;
-    }
-    const result = await db.executeResult(query, [followerId, followedId]);
+      const query = `DELETE FROM user_follows WHERE follower_id = ? AND followed_id = ?;`;
+      const result = await db.executeResult(query, [followerId, followedId]);
 
-    if (result[0].affectedRows !== 1) {
-      return false;
+      if (result[0].affectedRows !== 1) {
+        return false;
+      }
+
+      return true;
     }
 
-    return true;
+    return false;
   } catch (err) {
     return false;
   }

@@ -1,8 +1,8 @@
 import { type Request, type Response } from "express";
+import { CookieOptions } from "express";
 import validator from "validator";
 import {
   type NewUser,
-  type CookieOptions,
   CustomError,
   handleError,
   comparePassword,
@@ -42,7 +42,7 @@ export const checkToken = async (req: Request, res: Response) => {
   }
 };
 
-export const checkEmail = async (_, res: Response) => {
+export const checkEmail = async (req: Request, res: Response) => {
   try {
     // testing
     const results = await checkUserWithEmail("admin12345@gmail.com");
@@ -58,7 +58,7 @@ export const checkEmail = async (_, res: Response) => {
 export const register = async (req: Request, res: Response) => {
   try {
     const { userCount } = await getUserCountInDb();
-    const userLimit = parseInt(process.env.USER_COUNT_LIMIT);
+    const userLimit = parseInt(process.env.USER_COUNT_LIMIT as string) || 50;
 
     if (userCount >= userLimit) {
       throw new CustomError("User count limit already reached!", 500);
@@ -173,7 +173,11 @@ export const verifyEmail = async (req: Request, res: Response) => {
     const userToken = processed[0].verificationToken;
     const userTokenExp = processed[0].verificationExpire;
 
-    if (userToken === hashedToken && Date.now() < userTokenExp) {
+    if (
+      userToken === hashedToken &&
+      userTokenExp &&
+      Date.now() < userTokenExp
+    ) {
       if (!(await verifyUserInDb(email as string))) {
         throw new CustomError("Db: Failed to update user!", 500);
       }
@@ -239,22 +243,28 @@ export const logout = async (req: Request, res: Response) => {
 
 export const forgotPassword = async (req: Request, res: Response) => {};
 
-// helper function
-
+// helper functions
 const sendTokenizedResponse = async (
   userId: string,
   statusCode: number,
   res: Response,
   action?: string
 ) => {
+  const production: boolean = process.env.NODE_ENV === "production";
+
   const options: CookieOptions = {
     httpOnly: true,
     expires: new Date(
-      Date.now() + parseInt(process.env.JWT_COOKIE_EXPIRE) * 60 * 1000 * 60 * 24
-    ), // 24 hours - 1 day
-    sameSite: "strict",
-    secure: process.env.NODE_ENV === "production",
+      Date.now() + parseInt(process.env.JWT_COOKIE_EXPIRE as string) ||
+        1 * 60 * 1000 * 60 * 24
+    ), // 24 hours or 1 day
+    sameSite: production ? "none" : "strict",
+    secure: production ? true : false,
   };
+
+  if (production) {
+    options.domain = process.env.DOMAIN_URL;
+  }
 
   if (action === "logout") {
     options.expires = new Date(Date.now());

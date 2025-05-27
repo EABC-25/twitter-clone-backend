@@ -5,13 +5,13 @@ interface User {
   email: string;
   password: string;
   displayName: string;
-  displayNamePermanent: boolean;
+  displayNamePermanent: Uint8Array;
   dateOfBirth: string;
   bioText: string;
-  verified: boolean;
+  verified: Uint8Array;
   verificationToken: string | null;
   verificationExpire: number | null;
-  forgotPasswordFlag: boolean;
+  forgotPasswordFlag: Uint8Array;
   forgotPasswordToken: string | null;
   forgotPasswordExpire: string | null;
   profilePicture: string | null;
@@ -86,12 +86,13 @@ interface EmailOptions {
   message: string;
 }
 
-interface CookieOptions {
-  httpOnly: boolean;
-  expires: Date;
-  sameSite?: "lax" | "strict" | "none";
-  secure: boolean | null;
-}
+// CookieOptions is a type import from express
+// interface CookieOptions {
+//   httpOnly: boolean;
+//   expires: Date;
+//   sameSite?: "lax" | "strict" | "none";
+//   secure: boolean | null;
+// }
 
 interface NewReply {
   postId: string;
@@ -132,13 +133,23 @@ interface UserSearch {
   displayName: string;
 }
 
+type UserInfoUpdates = {
+  profilePicture: null | string;
+  headerPicture: null | string;
+  profilePictureMediaId: null | string;
+  headerPictureMediaId: null | string;
+  displayName: null | string;
+  bioText: null | string;
+  dateOfBirth: null | string;
+  email: string;
+};
+
 export {
   type User,
   type NewUser,
   type UserByToken,
   type UpdatedUser,
   type EmailOptions,
-  type CookieOptions,
   type NewPost,
   type Post,
   type ResponsePosts,
@@ -148,4 +159,5 @@ export {
   type ResponseReplies,
   type UserFollows,
   type UserSearch,
+  type UserInfoUpdates,
 };
