@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
+import jsonwebtoken from "jsonwebtoken";
 import crypto from "crypto";
 const { createHmac } = crypto;
 
@@ -19,13 +19,14 @@ export const comparePassword = async (
 
 export const generateJWToken = (userId: string): string => {
   const payload: object = { userId: userId };
-  const secret: jwt.Secret = process.env.JWT_SECRET as string;
-  const expiresIn: string = (process.env.JWT_EXPIRE || "1d") as string;
-  const jwtOptions: jwt.SignOptions = {
+  const secret: jsonwebtoken.Secret = process.env.JWT_SECRET as string;
+  const expiresIn: string | number | undefined = (process.env.JWT_EXPIRE ||
+    "1d") as string | number | undefined;
+  const jwtOptions: jsonwebtoken.SignOptions = {
     expiresIn: expiresIn,
   };
 
-  const token = jwt.sign(payload, secret, jwtOptions);
+  const token = jsonwebtoken.sign(payload, secret, jwtOptions);
 
   return token;
 };
