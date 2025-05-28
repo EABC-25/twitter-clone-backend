@@ -20,8 +20,7 @@ export const comparePassword = async (
 export const generateJWToken = (userId: string): string => {
   const payload: object = { userId: userId };
   const secret: jsonwebtoken.Secret = process.env.JWT_SECRET as string;
-  const expiresIn: string | number | undefined = (process.env.JWT_EXPIRE ||
-    "1d") as string | number | undefined;
+  const expiresIn: string | number = process.env.JWT_EXPIRE ?? "1d";
   const jwtOptions: jsonwebtoken.SignOptions = {
     expiresIn: expiresIn,
   };
