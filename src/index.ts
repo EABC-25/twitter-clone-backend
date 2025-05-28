@@ -38,8 +38,11 @@ const authLimiter = rateLimit({
   message: "Too many requests, please try again later.",
 });
 
-// init methods, routes and db
+// This tells Express to trust the X-Forwarded-For header — which your reverse proxy (OpenLiteSpeed in your case) sets correctly.
+// 1 means "trust the first IP in the chain", which helps mitigate spoofing if your app is exposed beyond your reverse proxy.
+app.set("trust proxy", 1);
 
+// init methods, routes, middleware and db
 app.use(cors(corsOptions));
 app.use(helmet());
 app.use(express.json());
