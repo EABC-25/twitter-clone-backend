@@ -22,7 +22,7 @@ import testRoutes from "./routes/test.route";
 const app = express();
 const port = 8000;
 
-// Configure CORS to allow requests from localhost:3000
+// Configure CORS to allow requests from y-app
 const corsOptions = {
   origin: process.env.FRONTEND_URL,
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
@@ -40,7 +40,7 @@ const authLimiter = rateLimit({
 
 // This tells Express to trust the X-Forwarded-For header — which your reverse proxy (OpenLiteSpeed in your case) sets correctly.
 // 1 means "trust the first IP in the chain", which helps mitigate spoofing if your app is exposed beyond your reverse proxy.
-app.set("trust proxy", 1);
+app.set("trust proxy", true);
 
 // init methods, routes, middleware and db
 app.use(cors(corsOptions));
@@ -51,11 +51,11 @@ app.disable("x-powered-by");
 
 db.connect();
 
-app.use("/api/v1/auth", authLimiter, authRoutes);
-app.use("/api/v1/user", authLimiter, userRoutes);
-app.use("/api/v1/post", authLimiter, postRoutes);
-app.use("/api/v1/test", authLimiter, testRoutes);
-app.get("/api/health", async (req, res) => {
+app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/user", userRoutes);
+app.use("/api/v1/post", postRoutes);
+app.use("/api/v1/test", testRoutes);
+app.get("/api/v1/health", async (req, res) => {
   try {
     const [rows] = await db.getPool().query("SELECT 1 + 1 AS result");
     res.json({ success: true, db: rows });
