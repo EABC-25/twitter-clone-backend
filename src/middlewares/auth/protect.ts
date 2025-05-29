@@ -3,11 +3,7 @@ import jwt from "jsonwebtoken";
 
 import { CustomError, handleError, getUserFromDb } from "../../utils";
 
-export const protect = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+const protect = async (req: Request, res: Response, next: NextFunction) => {
   try {
     let token: string = req.cookies.token;
 
@@ -51,3 +47,5 @@ export const protect = async (
     handleError(err, res);
   }
 };
+
+export default protect;

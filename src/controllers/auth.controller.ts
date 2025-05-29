@@ -33,27 +33,27 @@ const frontendRoutes = [
   "media",
 ];
 
-export const checkToken = async (req: Request, res: Response) => {
-  try {
-    // testing
-    res.status(200).json({ success: true });
-  } catch (err) {
-    handleError(err, res);
-  }
-};
+// export const checkToken = async (req: Request, res: Response) => {
+//   try {
+//     // testing
+//     res.status(200).json({ success: true });
+//   } catch (err) {
+//     handleError(err, res);
+//   }
+// };
 
-export const checkEmail = async (req: Request, res: Response) => {
-  try {
-    // testing
-    const results = await checkUserWithEmail("admin12345@gmail.com");
+// export const checkEmail = async (req: Request, res: Response) => {
+//   try {
+//     // testing
+//     const results = await checkUserWithEmail("admin12345@gmail.com");
 
-    if (results.length <= 0) throw new CustomError("DB: Email not found!", 404);
+//     if (results.length <= 0) throw new CustomError("DB: Email not found!", 404);
 
-    res.status(200).json({ message: "Email found." });
-  } catch (err) {
-    handleError(err, res);
-  }
-};
+//     res.status(200).json({ message: "Email found." });
+//   } catch (err) {
+//     handleError(err, res);
+//   }
+// };
 
 export const register = async (req: Request, res: Response) => {
   try {

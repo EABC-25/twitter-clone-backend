@@ -4,7 +4,6 @@ import dotenv from "dotenv";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
-import rateLimit from "express-rate-limit";
 
 // init env
 dotenv.config();
@@ -13,6 +12,7 @@ dotenv.config();
 import db from "./db";
 
 // import files, routes
+import healthRoutes from "./routes/health.route";
 import authRoutes from "./routes/auth.route";
 import userRoutes from "./routes/user.route";
 import postRoutes from "./routes/post.route";
@@ -29,15 +29,6 @@ const corsOptions = {
   credentials: true, // Allow cookies and other credentials
 };
 
-// init ratelimiter
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: "Too many requests, please try again later.",
-});
-
 // This tells Express to trust the X-Forwarded-For header — which your reverse proxy (OpenLiteSpeed in your case) sets correctly.
 // 1 means "trust the first IP in the chain", which helps mitigate spoofing if your app is exposed beyond your reverse proxy.
 app.set("trust proxy", true);
@@ -51,18 +42,15 @@ app.disable("x-powered-by");
 
 db.connect();
 
+app.get("/", (req, res) => {
+  res.redirect("/health");
+});
+
+app.get("/health", healthRoutes);
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/user", userRoutes);
 app.use("/api/v1/post", postRoutes);
 app.use("/api/v1/test", testRoutes);
-app.get("/api/v1/health", async (req, res) => {
-  try {
-    const [rows] = await db.getPool().query("SELECT 1 + 1 AS result");
-    res.json({ success: true, db: rows });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err });
-  }
-});
 
 // init server
 app.listen(port, () => {
