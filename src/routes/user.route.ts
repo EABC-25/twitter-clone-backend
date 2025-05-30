@@ -11,17 +11,27 @@ import {
   getUserCount,
 } from "../controllers/user.controller";
 import protect from "../middlewares/auth/protect";
-import limiter from "../middlewares/ratelimit/limiter";
+import {
+  customAuthLimiter,
+  authLimiter,
+  userLimiter,
+} from "../middlewares/ratelimit/limiter";
 
 const router = express.Router();
 
-router.get("/count", limiter, getUserCount);
-router.get("/getUserWithToken", protect, limiter, getUserWithToken);
-router.get("/getUserWithUserName", protect, limiter, getUserWithUserName);
-router.delete("/deleteUser", protect, limiter, deleteUser);
-router.patch("/updateUserProfile", protect, limiter, updateUserProfile);
-router.post("/follow", protect, limiter, updateUserFollows);
-router.get("/getUserFollows", protect, limiter, getUserFollows);
-router.get("/search", protect, limiter, getUsersForSearch);
+router.get("/count", authLimiter, getUserCount);
+router.get(
+  "/getUserWithToken",
+  customAuthLimiter(50, 10),
+  protect,
+  userLimiter,
+  getUserWithToken
+);
+router.get("/getUserWithUserName", protect, userLimiter, getUserWithUserName);
+router.delete("/deleteUser", protect, userLimiter, deleteUser);
+router.patch("/updateUserProfile", protect, userLimiter, updateUserProfile);
+router.post("/follow", protect, userLimiter, updateUserFollows);
+router.get("/getUserFollows", protect, userLimiter, getUserFollows);
+router.get("/search", protect, userLimiter, getUsersForSearch);
 
 export default router;

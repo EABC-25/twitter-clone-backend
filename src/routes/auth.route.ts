@@ -7,13 +7,13 @@ import {
   logout,
 } from "../controllers/auth.controller";
 import protect from "../middlewares/auth/protect";
-import limiter from "../middlewares/ratelimit/limiter";
+import { authLimiter, userLimiter } from "../middlewares/ratelimit/limiter";
 
 const router = express.Router();
 
-router.post("/register", limiter, register);
-router.post("/login", limiter, login);
-router.post("/logout", protect, limiter, logout);
+router.post("/register", authLimiter, register);
+router.post("/login", authLimiter, login);
+router.post("/logout", protect, userLimiter, logout);
 
 // router.post("/verifyEmail", limiter, verifyEmail);
 

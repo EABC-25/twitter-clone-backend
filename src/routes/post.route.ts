@@ -15,22 +15,21 @@ import {
   deleteReply,
 } from "../controllers/post.controller";
 import protect from "../middlewares/auth/protect";
-import limiter from "../middlewares/ratelimit/limiter";
-
+import { userLimiter } from "../middlewares/ratelimit/limiter";
 const router = express.Router();
 
-router.get("/getMediaUploadSign", protect, limiter, getMediaUploadSign);
-router.get("/getHomePosts", protect, limiter, getHomePosts);
-router.get("/getPost", protect, limiter, getPost);
-router.get("/getUserPosts", protect, limiter, getUserPosts);
-router.post("/addPost", protect, limiter, addPost);
-router.delete("/deletePost", protect, limiter, deletePost);
-router.put("/likePost", protect, limiter, updatePostLikes);
-router.post("/addReply", protect, limiter, addReply);
-router.get("/getPostReplies", protect, limiter, getPostReplies);
-router.post("/getMorePostReplies", protect, limiter, getPostReplies);
-router.get("/getReply", protect, limiter, getReply);
-router.delete("/deleteReply", protect, limiter, deleteReply);
-router.put("/likeReply", protect, limiter, updateReplyLikes);
+router.get("/getMediaUploadSign", protect, userLimiter, getMediaUploadSign);
+router.get("/getHomePosts", protect, userLimiter, getHomePosts);
+router.get("/getPost", protect, userLimiter, getPost);
+router.get("/getUserPosts", protect, userLimiter, getUserPosts);
+router.post("/addPost", protect, userLimiter, addPost);
+router.delete("/deletePost", protect, userLimiter, deletePost);
+router.put("/likePost", protect, userLimiter, updatePostLikes);
+router.post("/addReply", protect, userLimiter, addReply);
+router.get("/getPostReplies", protect, userLimiter, getPostReplies);
+router.post("/getMorePostReplies", protect, userLimiter, getPostReplies);
+router.get("/getReply", protect, userLimiter, getReply);
+router.delete("/deleteReply", protect, userLimiter, deleteReply);
+router.put("/likeReply", protect, userLimiter, updateReplyLikes);
 
 export default router;
