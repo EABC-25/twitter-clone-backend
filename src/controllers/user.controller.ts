@@ -225,6 +225,8 @@ export const updateUserProfile = async (req: Request, res: Response) => {
 
     const updatesCopy: UserInfoUpdates = { ...updates };
 
+    console.log(updatesCopy);
+
     if (updatesCopy.email !== user[0].email) {
       throw new CustomError("Unauthorized access!", 401);
     }
@@ -254,14 +256,16 @@ export const updateUserProfile = async (req: Request, res: Response) => {
       user[0].userId
     );
 
+    console.log("user updated prevMedia: ", prevMedia);
+
     if (!prevMedia) {
       //revert media upload if unsuccessful
-      if (updatesCopy.profilePicture && updatesCopy.profilePictureMediaId) {
-        await deleteMedia(updatesCopy.profilePictureMediaId, "image");
+      if (updatesCopy.profilePicture && updatesCopy.profilePicturePublicId) {
+        await deleteMedia(updatesCopy.profilePicturePublicId, "image");
       }
 
-      if (updatesCopy.headerPicture && updatesCopy.headerPictureMediaId) {
-        await deleteMedia(updatesCopy.headerPictureMediaId, "image");
+      if (updatesCopy.headerPicture && updatesCopy.headerPicturePublicId) {
+        await deleteMedia(updatesCopy.headerPicturePublicId, "image");
       }
 
       throw new CustomError(
@@ -271,12 +275,12 @@ export const updateUserProfile = async (req: Request, res: Response) => {
     }
 
     // backend needs to initiate deletion of previously uploaded media if user has uploaded a new one. That's why we returned prevMedia object from db method
-    if (updatesCopy.profilePicture && prevMedia.profilePictureMediaId) {
-      await deleteMedia(prevMedia.profilePictureMediaId, "image");
+    if (updatesCopy.profilePicture && prevMedia.profilePicturePublicId) {
+      await deleteMedia(prevMedia.profilePicturePublicId, "image");
     }
 
-    if (updatesCopy.headerPicture && prevMedia.headerPictureMediaId) {
-      await deleteMedia(prevMedia.headerPictureMediaId, "image");
+    if (updatesCopy.headerPicture && prevMedia.headerPicturePublicId) {
+      await deleteMedia(prevMedia.headerPicturePublicId, "image");
     }
 
     res.status(200).json({

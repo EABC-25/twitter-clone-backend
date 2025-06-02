@@ -136,8 +136,8 @@ interface UserSearch {
 type UserInfoUpdates = {
   profilePicture: null | string;
   headerPicture: null | string;
-  profilePictureMediaId: null | string;
-  headerPictureMediaId: null | string;
+  profilePicturePublicId: null | string;
+  headerPicturePublicId: null | string;
   displayName: null | string;
   bioText: null | string;
   dateOfBirth: null | string;

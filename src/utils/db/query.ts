@@ -91,10 +91,12 @@ export const updateUserInDb = async (
   queryParams: string[],
   userId: string
 ): Promise<{
-  profilePictureMediaId: string;
-  headerPictureMediaId: string;
+  profilePicturePublicId: string;
+  headerPicturePublicId: string;
 } | null> => {
   try {
+    console.log("updateUserInDb query: ", query);
+    console.log("params: ", queryParams);
     const prevMedia = await db.executeRows(
       `SELECT profilePicturePublicId, headerPicturePublicId FROM users WHERE userId = ?`,
       [userId]
@@ -107,8 +109,8 @@ export const updateUserInDb = async (
     }
 
     return prevMedia[0][0] as {
-      profilePictureMediaId: string;
-      headerPictureMediaId: string;
+      profilePicturePublicId: string;
+      headerPicturePublicId: string;
     };
   } catch (err) {
     return null;
