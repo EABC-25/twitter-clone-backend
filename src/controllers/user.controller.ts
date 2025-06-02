@@ -254,6 +254,8 @@ export const updateUserProfile = async (req: Request, res: Response) => {
       user[0].userId
     );
 
+    console.log(prevMedia);
+
     if (!prevMedia) {
       //revert media upload if unsuccessful
       if (updatesCopy.profilePicture && updatesCopy.profilePictureMediaId) {
