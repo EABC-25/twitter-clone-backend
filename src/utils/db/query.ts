@@ -95,21 +95,17 @@ export const updateUserInDb = async (
   headerPictureMediaId: string;
 } | null> => {
   try {
-    console.log("running update query: ", query);
     const prevMedia = await db.executeRows(
-      `SELECT profilePictureMediaId, headerPictureMediaId FROM users WHERE userId = ?`,
+      `SELECT profilePicturePublicId, headerPicturePublicId FROM users WHERE userId = ?`,
       [userId]
     );
 
-    console.log("values: ", queryParams);
     const updateResults = await db.executeResult(query, queryParams);
 
-    console.log("updateResults: ", updateResults);
     if (updateResults[0].affectedRows === 0) {
       return null;
     }
 
-    console.log("prevMedia: ", prevMedia);
     return prevMedia[0][0] as {
       profilePictureMediaId: string;
       headerPictureMediaId: string;
