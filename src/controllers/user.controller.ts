@@ -4,6 +4,9 @@ import {
   CustomError,
   handleError,
   deleteMedia,
+} from "../utils";
+
+import {
   getUsersFromDb,
   getUserFromDb,
   getUserLikedPostsFromDb,
@@ -15,65 +18,18 @@ import {
   getUsersSearchedFromDb,
   getUserPostsRepliesLimits,
   getUserCountInDb,
-} from "../utils";
+} from "../services/user.service";
 
 export const getUsers = async (req: Request, res: Response) => {
   try {
     const results = await getUsersFromDb();
-    // console.log(results[0].createdAt instanceof Date);
     res.status(200).json({ data: results });
   } catch (err) {
     handleError(err, res);
   }
 };
 
-export const getUserTest = async (req: Request, res: Response) => {
-  try {
-    const { userId } = req.query;
-
-    const results = await getUserFromDb(
-      `SELECT userId, username, email, createdAt, displayName, displayNamePermanent, dateOfBirth, bioText, verified, profilePicture, headerPicture FROM users WHERE userId = ?`,
-      userId as string
-    );
-
-    if (results.length <= 0) {
-      throw new CustomError("DB: User not found!", 404);
-    }
-
-    const dnp = results[0].displayNamePermanent
-      ? results[0].displayNamePermanent[0] === 1
-      : false;
-
-    const v = results[0].verified ? results[0].verified[0] === 1 : false;
-
-    if (!v) {
-      throw new CustomError("User: User is not yet verified!", 403);
-    }
-
-    const lpRes = await getUserLikedPostsFromDb(results[0].userId);
-    const lpResMappedVals: string[] = lpRes.map(obj => obj.postId);
-
-    res.status(200).json({
-      user: {
-        username: results[0].username,
-        email: results[0].email,
-        createdAt: results[0].createdAt,
-        displayName: results[0].displayName,
-        displayNamePermanent: dnp,
-        dateOfBirth: results[0].dateOfBirth,
-        bioText: results[0].bioText,
-        verified: v,
-        likedPosts: lpResMappedVals,
-        profilePicture: results[0].profilePicture,
-        headerPicture: results[0].headerPicture,
-      },
-    });
-  } catch (err) {
-    handleError(err, res);
-  }
-};
-
-export const getUserWithToken = async (req: Request, res: Response) => {
+export const getUserFromToken = async (req: Request, res: Response) => {
   try {
     let {
       userId,
@@ -139,8 +95,6 @@ export const getUserWithToken = async (req: Request, res: Response) => {
 export const getUserWithUserName = async (req: Request, res: Response) => {
   try {
     const { username: un } = req.query;
-
-    console.log(un);
 
     if (!un) {
       throw new CustomError("DB: User not found!", 404);
@@ -224,8 +178,6 @@ export const updateUserProfile = async (req: Request, res: Response) => {
     }
 
     const updatesCopy: UserInfoUpdates = { ...updates };
-
-    console.log(updatesCopy);
 
     if (updatesCopy.email !== user[0].email) {
       throw new CustomError("Unauthorized access!", 401);
@@ -389,3 +341,49 @@ export const getUserCount = async (req: Request, res: Response) => {
     handleError(err, res);
   }
 };
+
+// export const getUserTest = async (req: Request, res: Response) => {
+//   try {
+//     const { userId } = req.query;
+
+//     const results = await getUserFromDb(
+//       `SELECT userId, username, email, createdAt, displayName, displayNamePermanent, dateOfBirth, bioText, verified, profilePicture, headerPicture FROM users WHERE userId = ?`,
+//       userId as string
+//     );
+
+//     if (results.length <= 0) {
+//       throw new CustomError("DB: User not found!", 404);
+//     }
+
+//     const dnp = results[0].displayNamePermanent
+//       ? results[0].displayNamePermanent[0] === 1
+//       : false;
+
+//     const v = results[0].verified ? results[0].verified[0] === 1 : false;
+
+//     if (!v) {
+//       throw new CustomError("User: User is not yet verified!", 403);
+//     }
+
+//     const lpRes = await getUserLikedPostsFromDb(results[0].userId);
+//     const lpResMappedVals: string[] = lpRes.map(obj => obj.postId);
+
+//     res.status(200).json({
+//       user: {
+//         username: results[0].username,
+//         email: results[0].email,
+//         createdAt: results[0].createdAt,
+//         displayName: results[0].displayName,
+//         displayNamePermanent: dnp,
+//         dateOfBirth: results[0].dateOfBirth,
+//         bioText: results[0].bioText,
+//         verified: v,
+//         likedPosts: lpResMappedVals,
+//         profilePicture: results[0].profilePicture,
+//         headerPicture: results[0].headerPicture,
+//       },
+//     });
+//   } catch (err) {
+//     handleError(err, res);
+//   }
+// };

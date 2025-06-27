@@ -9,13 +9,12 @@ import {
   hashPassword,
   generateVerificationToken,
   generateHashedToken,
-  getUserFromDb,
-  checkUserWithEmail,
-  addUserToDb,
-  verifyUserInDb,
   generateJWToken,
-  getUserCountInDb,
 } from "../utils";
+
+import { getUserFromDb, getUserCountInDb } from "../services/user.service";
+
+import { addUserToDb, verifyUserInDb } from "../services/auth.service";
 
 // we need to add all possible routes here like "settings/account" or just block usage of \ or any special character as username
 const frontendRoutes = [
@@ -241,7 +240,7 @@ export const logout = async (req: Request, res: Response) => {
   }
 };
 
-export const forgotPassword = async (req: Request, res: Response) => {};
+// export const forgotPassword = async (req: Request, res: Response) => {};
 
 // helper functions
 const sendTokenizedResponse = async (

@@ -1,7 +1,7 @@
 import express from "express";
 
 import {
-  getUserWithToken,
+  getUserFromToken,
   getUserWithUserName,
   deleteUser,
   updateUserProfile,
@@ -25,7 +25,7 @@ router.get(
   customAuthLimiter(50, 10),
   protect,
   userLimiter,
-  getUserWithToken
+  getUserFromToken
 );
 router.get("/getUserWithUserName", protect, userLimiter, getUserWithUserName);
 router.delete("/deleteUser", protect, userLimiter, deleteUser);

@@ -1,7 +1,9 @@
 import { type Request, type Response, type NextFunction } from "express";
 import jwt from "jsonwebtoken";
 
-import { CustomError, handleError, getUserFromDb } from "../../utils";
+import { CustomError, handleError } from "../../utils";
+
+import { getUserFromDb } from "../../services/user.service";
 
 const protect = async (req: Request, res: Response, next: NextFunction) => {
   try {

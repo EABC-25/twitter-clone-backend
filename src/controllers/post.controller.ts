@@ -5,10 +5,14 @@ import {
   type ResponseReplies,
   CustomError,
   handleError,
-  getUserFromDb,
   cloudinaryConfig,
   signUploadForm,
   deleteMedia,
+} from "../utils";
+
+import { getUserFromDb } from "../services/user.service";
+
+import {
   addPostToDb,
   deletePostInDb,
   checkPostsInDb,
@@ -21,12 +25,12 @@ import {
   getReplyFromDb,
   updateReplyLikesInDb,
   deleteReplyInDb,
-} from "../utils";
+} from "../services/post.service";
 
 export const getMediaUploadSign = async (req: Request, res: Response) => {
   try {
     const mediaSign = signUploadForm();
-    // THIS ENDPOINT FUNCTION SO INSECURE BRO WE NEED TO CIRCLE BACK SOME POINT IN THE NEAR FUTURE AND FIX THIS FUNCTIONALITY??
+    // ISN'T THIS FUNCTION INSECURE?? BRO WE NEED TO CIRCLE BACK SOME POINT IN THE NEAR FUTURE AND FIX THIS FUNCTIONALITY??
     res.status(200).json({
       signature: mediaSign.signature,
       timestamp: mediaSign.timestamp,
