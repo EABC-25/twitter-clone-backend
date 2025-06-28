@@ -15,7 +15,7 @@ export const addUserToDb = async (newUser: NewUser): Promise<boolean> => {
     ]
   );
 
-  if (rows[0].affectedRows > 0) return true;
+  if (rows?.[0]?.affectedRows > 0) return true;
 
   return false;
 };
@@ -26,16 +26,22 @@ export const verifyUserInDb = async (email: string): Promise<boolean> => {
     [email]
   );
 
-  if (rows[0].affectedRows > 0) return true;
+  if (rows?.[0]?.affectedRows > 0) return true;
 
   return false;
 };
 
 export const checkUserWithEmail = async (
   email: string
-): Promise<{ email: string }[]> => {
+): Promise<{ email: string } | null> => {
   const rows = await db.executeRows(`SELECT email FROM users WHERE email = ?`, [
     email,
   ]);
-  return rows[0] as { email: string }[];
+
+  if (!rows[0] || rows[0].length === 0) {
+    return null;
+  }
+
+  // we only need to return the first one because email is a UNIQUE value...
+  return rows[0][0] as { email: string };
 };
