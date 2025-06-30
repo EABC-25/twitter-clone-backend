@@ -1,9 +1,12 @@
 import { type Request, type Response } from "express";
 
-import { getUsers } from "../../../src/controllers/user.controller";
+import {
+  getUsers,
+  getUserCount,
+} from "../../../src/controllers/user.controller";
 import * as userService from "../../../src/services/user.service";
 import * as errorUtils from "../../../src/utils/error/errorHandler";
-import { mockUser } from "../../../src/utils/mock/data";
+import { mockUser } from "../../utils/data/data";
 import { type User } from "../../../src/utils";
 
 describe("getUsers controller", () => {
@@ -43,4 +46,39 @@ describe("getUsers controller", () => {
   });
 });
 
-describe("getUserWithToken controller", () => {});
+describe("getUserCount controller", () => {
+  const req = {} as Request;
+  const res = {
+    status: jest.fn().mockReturnThis(),
+    json: jest.fn(),
+  } as unknown as Response;
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("should return users count and status 200", async () => {
+    const mockUserCount = { userCount: 5 };
+
+    jest
+      .spyOn(userService, "getUserCountInDb")
+      .mockResolvedValue(mockUserCount);
+
+    await getUserCount(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith(mockUserCount);
+  });
+
+  it("should call handleError if getUserCountInDb throws", async () => {
+    const error = new Error("DB error");
+    jest.spyOn(userService, "getUserCountInDb").mockRejectedValue(error);
+    const handleError = jest.spyOn(errorUtils, "handleError");
+
+    await getUserCount(req, res);
+
+    expect(handleError).toHaveBeenCalledWith(error, res);
+  });
+});
+
+// describe("getUserWithToken controller", () => {});

@@ -1,0 +1,95 @@
+[
+  {
+    "userId": "u1",
+    "createdAt": "2025-06-12T18:58:59.000Z",
+    "username": "usertesting",
+    "email": "usertesting@email.com",
+    "password": "testpassword",
+    "displayName": "usertesting",
+    "displayNamePermanent": {
+      "type": "Buffer",
+      "data": [0]
+    },
+    "dateOfBirth": "2025-01-01T00:00:00.000Z",
+    "bioText": "",
+    "verified": {
+      "type": "Buffer",
+      "data": [1]
+    },
+    "verificationToken": "token1",
+    "verificationExpire": 1749812339700,
+    "forgotPasswordFlag": {
+      "type": "Buffer",
+      "data": [0]
+    },
+    "forgotPasswordToken": null,
+    "forgotPasswordExpire": null,
+    "profilePicture": null,
+    "headerPicture": null,
+    "userInfoChangeCount": 0,
+    "profilePicturePublicId": null,
+    "headerPicturePublicId": null
+  },
+  {
+    "userId": "u2",
+    "createdAt": "2000-12-25T23:24:24.000Z",
+    "username": "SuperAdmin",
+    "email": "superadmin@email.com",
+    "password": "adminpassword",
+    "displayName": "SuperAdmin",
+    "displayNamePermanent": {
+      "type": "Buffer",
+      "data": [0]
+    },
+    "dateOfBirth": "1993-12-25T00:00:00.000Z",
+    "bioText": "please report to me... if there's any bugs you see...",
+    "verified": {
+      "type": "Buffer",
+      "data": [1]
+    },
+    "verificationToken": "token2",
+    "verificationExpire": 1749536214361,
+    "forgotPasswordFlag": {
+      "type": "Buffer",
+      "data": [0]
+    },
+    "forgotPasswordToken": null,
+    "forgotPasswordExpire": null,
+    "profilePicture": null,
+    "headerPicture": null,
+    "userInfoChangeCount": 1,
+    "profilePicturePublicId": null,
+    "headerPicturePublicId": null
+  },
+  {
+    "userId": "u3",
+    "createdAt": "1970-01-05T00:00:01.000Z",
+    "username": "immortal1",
+    "email": "immortal1@falconmail.msn",
+    "password": "password3",
+    "displayName": "immortal01",
+    "displayNamePermanent": {
+      "type": "Buffer",
+      "data": [0]
+    },
+    "dateOfBirth": "1800-01-01T00:00:00.000Z",
+    "bioText": "200+ years old, traveler, reader ",
+    "verified": {
+      "type": "Buffer",
+      "data": [1]
+    },
+    "verificationToken": "token3",
+    "verificationExpire": 1749532925399,
+    "forgotPasswordFlag": {
+      "type": "Buffer",
+      "data": [0]
+    },
+    "forgotPasswordToken": null,
+    "forgotPasswordExpire": null,
+    "profilePicture": null,
+    "headerPicture": null,
+    "userInfoChangeCount": 1,
+    "profilePicturePublicId": null,
+    "headerPicturePublicId": null
+  }
+]

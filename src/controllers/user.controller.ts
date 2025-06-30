@@ -29,6 +29,18 @@ export const getUsers = async (req: Request, res: Response) => {
   }
 };
 
+export const getUserCount = async (req: Request, res: Response) => {
+  try {
+    const { userCount } = await getUserCountInDb();
+
+    res.status(200).json({
+      userCount,
+    });
+  } catch (err) {
+    handleError(err, res);
+  }
+};
+
 export const getUserFromToken = async (req: Request, res: Response) => {
   try {
     let {
@@ -324,18 +336,6 @@ export const getUserPostsRepliesLimitsTest = async (
 
     res.status(200).json({
       limits: data,
-    });
-  } catch (err) {
-    handleError(err, res);
-  }
-};
-
-export const getUserCount = async (req: Request, res: Response) => {
-  try {
-    const { userCount } = await getUserCountInDb();
-
-    res.status(200).json({
-      userCount,
     });
   } catch (err) {
     handleError(err, res);

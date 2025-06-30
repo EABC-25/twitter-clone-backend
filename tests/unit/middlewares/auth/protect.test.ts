@@ -1,13 +1,13 @@
 import { type Request, type Response, type NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import protect from "../../../src/middlewares/auth/protect";
-import * as userService from "../../../src/services/user.service";
-import * as errorUtils from "../../../src/utils/error/errorHandler";
-import { mockUser } from "../../../src/utils/mock/data";
-import { CustomError } from "../../../src/utils";
+import protect from "../../../../src/middlewares/auth/protect";
+import * as userService from "../../../../src/services/user.service";
+import * as errorUtils from "../../../../src/utils/error/errorHandler";
+import { mockUser } from "../../../utils/data/data";
+import { CustomError } from "../../../../src/utils";
 
 jest.mock("jsonwebtoken");
-jest.mock("../../../src/services/user.service");
+jest.mock("../../../../src/services/user.service");
 
 describe("protect middleware", () => {
   const mockRes = () =>

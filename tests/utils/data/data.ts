@@ -1,4 +1,4 @@
-import type { User, NewUser } from "..";
+import type { User, NewUser } from "../../../src/utils";
 
 export const mockUser: User = {
   userId: "user1",

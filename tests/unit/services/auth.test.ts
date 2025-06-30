@@ -4,7 +4,7 @@ import {
   checkUserWithEmail,
 } from "../../../src/services/auth.service";
 import db from "../../../src/db";
-import { mockNewUser } from "../../../src/utils/mock/data";
+import { mockNewUser } from "../../utils/data/data";
 
 jest.mock("../../../src/db");
 
