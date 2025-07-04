@@ -90,6 +90,9 @@ importers:
       supertest:
         specifier: ^7.1.1
         version: 7.1.1
+      supertest-session:
+        specifier: ^5.0.1
+        version: 5.0.1(supertest@7.1.1)
       ts-jest:
         specifier: ^29.4.0
         version: 29.4.0(@babel/core@7.27.7)(@jest/transform@30.0.2)(@jest/types@30.0.1)(babel-jest@30.0.2(@babel/core@7.27.7))(jest-util@30.0.2)(jest@30.0.3(@types/node@22.10.7))(typescript@5.7.3)
@@ -2000,6 +2003,11 @@ packages:
   superagent@10.2.1:
     resolution: {integrity: sha512-O+PCv11lgTNJUzy49teNAWLjBZfc+A1enOwTpLlH6/rsvKcTwcdTT8m9azGkVqM7HBl5jpyZ7KTPhHweokBcdg==}
     engines: {node: '>=14.18.0'}
+
+  supertest-session@5.0.1:
+    resolution: {integrity: sha512-RpR8tGQZGreQsOCiW3YMSPKMwPlAB8lA0Jyat+8VUSJaYvLHTMqhMW6gooJ2htzjr3w/kgqJTQDnmuFenzA9JA==}
+    peerDependencies:
+      supertest: '>= 3.1.0'
 
   supertest@7.1.1:
     resolution: {integrity: sha512-aI59HBTlG9e2wTjxGJV+DygfNLgnWbGdZxiA/sgrnNNikIW8lbDvCtF6RnhZoJ82nU7qv7ZLjrvWqCEm52fAmw==}
@@ -4308,6 +4316,13 @@ snapshots:
       qs: 6.13.0
     transitivePeerDependencies:
       - supports-color
+
+  supertest-session@5.0.1(supertest@7.1.1):
+    dependencies:
+      cookiejar: 2.1.4
+      methods: 1.1.2
+      object-assign: 4.1.1
+      supertest: 7.1.1
 
   supertest@7.1.1:
     dependencies:

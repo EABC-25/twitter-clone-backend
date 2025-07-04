@@ -19,10 +19,10 @@ const queries = [
   "INSERT INTO user_follows (follower_id, followed_id, createdAt) VALUES (?, ?, ?);",
 ];
 
-async function seeder(tableName: string) {
+async function seeder(tableName: string, fileName: string) {
   try {
     if (tableName === "users") {
-      const filePath = path.resolve("tests/utils/data/users.json");
+      const filePath = path.resolve("tests/utils/data/", fileName);
       const file = await fs.readFile(filePath, "utf-8");
       const users: User[] = JSON.parse(file);
 
@@ -46,10 +46,10 @@ async function seeder(tableName: string) {
           user.profilePicturePublicId,
           user.headerPicturePublicId,
         ]);
-        console.log(`Inserted user: ${user.username}`);
+        // console.log(`Inserted user: ${user.username}`);
       }
     } else if (tableName === "posts") {
-      const filePath = path.resolve("tests/utils/data/posts.json");
+      const filePath = path.resolve("tests/utils/data/", fileName);
       const file = await fs.readFile(filePath, "utf-8");
       const posts: Post[] = JSON.parse(file);
 
@@ -65,10 +65,10 @@ async function seeder(tableName: string) {
           post.mediaPublicId,
           post.userId,
         ]);
-        console.log(`Inserted post: ${post.postId}`);
+        // console.log(`Inserted post: ${post.postId}`);
       }
     } else if (tableName === "replies") {
-      const filePath = path.resolve("tests/utils/data/replies.json");
+      const filePath = path.resolve("tests/utils/data/", fileName);
       const file = await fs.readFile(filePath, "utf-8");
       const replies: Reply[] = JSON.parse(file);
 
@@ -83,10 +83,10 @@ async function seeder(tableName: string) {
           reply.replierId,
           reply.posterId,
         ]);
-        console.log(`Inserted reply: ${reply.replyId}`);
+        // console.log(`Inserted reply: ${reply.replyId}`);
       }
     } else if (tableName === "post_likes") {
-      const filePath = path.resolve("tests/utils/data/post_likes.json");
+      const filePath = path.resolve("tests/utils/data/", fileName);
       const file = await fs.readFile(filePath, "utf-8");
       const postLikes: PostLike[] = JSON.parse(file);
 
@@ -96,12 +96,12 @@ async function seeder(tableName: string) {
           postLike.userId,
           toMySQLTimestampUTC(postLike.createdAt),
         ]);
-        console.log(
-          `Inserted postLike for: ${postLike.postId} by ${postLike.userId}`
-        );
+        // console.log(
+        //   `Inserted postLike for: ${postLike.postId} by ${postLike.userId}`
+        // );
       }
     } else if (tableName === "user_follows") {
-      const filePath = path.resolve("tests/utils/data/user_follows.json");
+      const filePath = path.resolve("tests/utils/data/", fileName);
       const file = await fs.readFile(filePath, "utf-8");
       const userFollows: UserFollow[] = JSON.parse(file);
 
@@ -111,9 +111,9 @@ async function seeder(tableName: string) {
           userFollow.followed_id,
           toMySQLTimestampUTC(userFollow.createdAt),
         ]);
-        console.log(
-          `Inserted userFollow for: ${userFollow.follower_id} - ${userFollow.followed_id}`
-        );
+        // console.log(
+        //   `Inserted userFollow for: ${userFollow.follower_id} - ${userFollow.followed_id}`
+        // );
       }
     } else {
       throw new Error(`No seeding logic defined for table: ${tableName}`);

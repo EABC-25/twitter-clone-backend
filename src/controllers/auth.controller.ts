@@ -65,6 +65,10 @@ export const register = async (req: Request, res: Response) => {
 
     const { username, email, password, dateOfBirth } = req.body;
 
+    if (!username || !email || !password || !dateOfBirth) {
+      throw new CustomError("Invalid request!", 500);
+    }
+
     if (frontendRoutes.includes(username)) {
       throw new CustomError("DB: User already exists!", 403);
     }

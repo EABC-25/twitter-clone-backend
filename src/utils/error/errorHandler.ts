@@ -10,9 +10,11 @@ export const handleError = (err: unknown, res: Response) => {
   const errMessage =
     err instanceof Error ? err.message : "An unknown error occurred";
 
-  if (process.env.NODE_ENV !== "test") {
-    console.error("Error: ", err);
-  }
+  // if (process.env.NODE_ENV !== "test") {
+  //   console.error("Error: ", err);
+  // }
+
+  console.error("Error: ", err);
 
   if (errCode === 500) {
     res.status(500).json({

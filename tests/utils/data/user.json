@@ -1,0 +1,33 @@
+[
+  {
+    "userId": "3e686ac1-477c-11f0-ab22-88a4c22b5dbc",
+    "createdAt": "2025-06-12T18:58:59.000Z",
+    "username": "usertesting",
+    "email": "usertesting@email.com",
+    "password": "$2a$10$bDY6E7JgNqFDrnpJQt6c4eGrACzc1IfZHJtm92BHqxaGHGzvXqQie",
+    "displayName": "usertesting",
+    "displayNamePermanent": {
+      "type": "Buffer",
+      "data": [0]
+    },
+    "dateOfBirth": "2025-01-01T00:00:00.000Z",
+    "bioText": "",
+    "verified": {
+      "type": "Buffer",
+      "data": [1]
+    },
+    "verificationToken": "38bf89ea090ee0078a3a449005244714b7adb7dccde85e1790053a5072a5c5f1",
+    "verificationExpire": 1749812339700,
+    "forgotPasswordFlag": {
+      "type": "Buffer",
+      "data": [0]
+    },
+    "forgotPasswordToken": null,
+    "forgotPasswordExpire": null,
+    "profilePicture": null,
+    "headerPicture": null,
+    "userInfoChangeCount": 0,
+    "profilePicturePublicId": null,
+    "headerPicturePublicId": null
+  }
+]

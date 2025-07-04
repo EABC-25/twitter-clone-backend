@@ -15,5 +15,5 @@
       "tests/*": ["tests/*"]
     }
   },
-  "include": ["src", "tests"]
+  "include": ["src", "tests", "supertest-session.d.ts"]
 }
