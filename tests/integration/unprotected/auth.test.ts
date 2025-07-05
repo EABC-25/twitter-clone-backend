@@ -16,7 +16,7 @@ afterAll(async () => {
   await db.getPool().end();
 });
 
-describe("Unprotected auth flow", () => {
+describe("Unprotected auth route", () => {
   // ENDPOINT: /api/v1/auth/login
   it("/api/v1/auth/login using correct credentials should return 200 response and session cookie", async () => {
     const { response } = await getLoggedInSession({

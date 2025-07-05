@@ -9,15 +9,16 @@ afterAll(async () => {
   await db.getPool().end();
 });
 
-describe("GET /api/v1/user", () => {
-  it("should return userCount === 0 when no users exist", async () => {
+describe("Unprotected user routes", () => {
+  // ENDPOINT: /api/v1/user/count
+  it("/api/v1/user/count should return userCount === 0 when no users exist", async () => {
     await resetTestDb(["users"]);
     const res = await request(app).get("/api/v1/user/count");
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ userCount: 0 });
   });
 
-  it("should return userCount > 0 when there are users", async () => {
+  it("/api/v1/user/count should return userCount > 0 when there are users", async () => {
     await seeder("users", "users.json");
     const res = await request(app).get("/api/v1/user/count");
     expect(res.status).toBe(200);

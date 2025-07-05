@@ -20,6 +20,8 @@ import {
 const router = express.Router();
 
 router.get("/count", authLimiter, getUserCount);
+
+// rate limit for get request without token set at 50 requests within 10 minutes. This is to avoid excessive requests on this endpoint's protect middleware via page refresh
 router.get(
   "/getUserWithToken",
   customAuthLimiter(50, 10),
@@ -27,6 +29,7 @@ router.get(
   userLimiter,
   getUserFromToken
 );
+
 router.get("/getUserWithUserName", protect, userLimiter, getUserWithUserName);
 router.delete("/deleteUser", protect, userLimiter, deleteUser);
 router.patch("/updateUserProfile", protect, userLimiter, updateUserProfile);

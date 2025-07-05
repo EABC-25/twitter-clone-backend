@@ -12,8 +12,6 @@ export const resetTestDb = async (
   await db.executeResult("SET FOREIGN_KEY_CHECKS = 1");
 };
 
-export const insertSingleUser = async () => {};
-
 export function toMySQLTimestampUTC(isoString: string): string {
   const date = new Date(isoString);
 
