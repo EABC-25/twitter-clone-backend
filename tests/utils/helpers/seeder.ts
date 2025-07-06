@@ -3,16 +3,16 @@ import path from "path";
 import db from "src/db";
 
 import {
-  type User,
-  type Post,
-  type Reply,
-  type UserFollow,
-  type PostLike,
+  type SeedUser,
+  type SeedPost,
+  type SeedReply,
+  type SeedUserFollow,
+  type SeedPostLike,
 } from "../types/types";
-import { toMySQLTimestampUTC } from "./helpers";
+import { toMySQLTimestampUTC, extractBitFromBuffer } from "./helpers";
 
 const queries = [
-  "INSERT INTO users (userId, createdAt, username, email, password, displayName, dateOfBirth, bioText, verificationToken, verificationExpire, forgotPasswordToken, forgotPasswordExpire, profilePicture, headerPicture, userInfoChangeCount, profilePicturePublicId, headerPicturePublicId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
+  "INSERT INTO users (userId, createdAt, username, email, password, displayName, displayNamePermanent, dateOfBirth, bioText, verified, verificationToken, verificationExpire, forgotPasswordFlag, forgotPasswordToken, forgotPasswordExpire, profilePicture, headerPicture, userInfoChangeCount, profilePicturePublicId, headerPicturePublicId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
   "INSERT INTO posts (postId, createdAt, postText, postMedia, mediaTypes, likeCount, replyCount, mediaPublicId, userId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);",
   "INSERT INTO replies (replyId, postId, createdAt, postText, likeCount, replyCount, replierId, posterId) VALUES (?, ?, ?, ?, ?, ?, ?, ?);",
   "INSERT INTO post_likes (postId, userId, createdAt) VALUES (?, ?, ?);",
@@ -24,7 +24,7 @@ async function seeder(tableName: string, fileName: string) {
     if (tableName === "users") {
       const filePath = path.resolve("tests/utils/data/", fileName);
       const file = await fs.readFile(filePath, "utf-8");
-      const users: User[] = JSON.parse(file);
+      const users: SeedUser[] = JSON.parse(file);
 
       for (const user of users) {
         await db.executeResult(queries[0], [
@@ -34,10 +34,13 @@ async function seeder(tableName: string, fileName: string) {
           user.email,
           user.password,
           user.displayName,
+          extractBitFromBuffer(user.displayNamePermanent),
           toMySQLTimestampUTC(user.dateOfBirth),
           user.bioText,
+          extractBitFromBuffer(user.verified),
           user.verificationToken,
           user.verificationExpire,
+          extractBitFromBuffer(user.forgotPasswordFlag),
           user.forgotPasswordToken,
           user.forgotPasswordExpire,
           user.profilePicture,
@@ -51,7 +54,7 @@ async function seeder(tableName: string, fileName: string) {
     } else if (tableName === "posts") {
       const filePath = path.resolve("tests/utils/data/", fileName);
       const file = await fs.readFile(filePath, "utf-8");
-      const posts: Post[] = JSON.parse(file);
+      const posts: SeedPost[] = JSON.parse(file);
 
       for (const post of posts) {
         await db.executeResult(queries[1], [
@@ -70,7 +73,7 @@ async function seeder(tableName: string, fileName: string) {
     } else if (tableName === "replies") {
       const filePath = path.resolve("tests/utils/data/", fileName);
       const file = await fs.readFile(filePath, "utf-8");
-      const replies: Reply[] = JSON.parse(file);
+      const replies: SeedReply[] = JSON.parse(file);
 
       for (const reply of replies) {
         await db.executeResult(queries[2], [
@@ -88,7 +91,7 @@ async function seeder(tableName: string, fileName: string) {
     } else if (tableName === "post_likes") {
       const filePath = path.resolve("tests/utils/data/", fileName);
       const file = await fs.readFile(filePath, "utf-8");
-      const postLikes: PostLike[] = JSON.parse(file);
+      const postLikes: SeedPostLike[] = JSON.parse(file);
 
       for (const postLike of postLikes) {
         await db.executeResult(queries[3], [
@@ -103,7 +106,7 @@ async function seeder(tableName: string, fileName: string) {
     } else if (tableName === "user_follows") {
       const filePath = path.resolve("tests/utils/data/", fileName);
       const file = await fs.readFile(filePath, "utf-8");
-      const userFollows: UserFollow[] = JSON.parse(file);
+      const userFollows: SeedUserFollow[] = JSON.parse(file);
 
       for (const userFollow of userFollows) {
         await db.executeResult(queries[4], [

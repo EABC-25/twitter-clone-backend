@@ -1,3 +1,5 @@
+// ZOD or any other schema types validation library/packages should be implemented in the future
+
 interface User {
   userId: string;
   createdAt: string;
@@ -16,6 +18,9 @@ interface User {
   forgotPasswordExpire: string | null;
   profilePicture: string | null;
   headerPicture: string | null;
+  userInfoChangeCount: number;
+  profilePicturePublicId: string | null;
+  headerPicturePublicId: string | null;
 }
 // userId, username, email, createdAt, displayName, displayNamePermanent, dateOfBirth, bioText, verified
 interface UserByToken {

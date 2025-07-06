@@ -1,4 +1,5 @@
 import db from "../../../src/db";
+import { SeedBuffer } from "../types/types";
 
 export const resetTestDb = async (
   tables = ["users", "posts", "replies", "user_follows", "post_likes"]
@@ -23,4 +24,8 @@ export function toMySQLTimestampUTC(isoString: string): string {
   const seconds = String(date.getUTCSeconds()).padStart(2, "0");
 
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
+export function extractBitFromBuffer(buffer: SeedBuffer): number {
+  return buffer.data[0];
 }

@@ -1,14 +1,22 @@
-export interface User {
+export interface SeedBuffer {
+  type: "Buffer";
+  data: number[];
+}
+
+export interface SeedUser {
   userId: string;
   createdAt: string;
   username: string;
   email: string;
   password: string;
   displayName: string;
+  displayNamePermanent: SeedBuffer;
   dateOfBirth: string;
   bioText: string;
+  verified: SeedBuffer;
   verificationToken: string | null;
   verificationExpire: number | null;
+  forgotPasswordFlag: SeedBuffer;
   forgotPasswordToken: string | null;
   forgotPasswordExpire: number | null;
   profilePicture: string | null;
@@ -18,7 +26,7 @@ export interface User {
   headerPicturePublicId: string | null;
 }
 
-export interface Post {
+export interface SeedPost {
   postId: string;
   createdAt: string;
   postText: string | null;
@@ -30,7 +38,7 @@ export interface Post {
   userId: string;
 }
 
-export interface Reply {
+export interface SeedReply {
   replyId: string;
   postId: string;
   createdAt: string;
@@ -41,16 +49,16 @@ export interface Reply {
   posterId: string;
 }
 
-export interface PostLike {
+export interface SeedPostLike {
   postId: string;
   userId: string;
   createdAt: string;
 }
 
-export interface UserFollow {
+export interface SeedUserFollow {
   follower_id: string;
   followed_id: string;
   createdAt: string;
 }
 
-export type Entity = User | Post | Reply | PostLike | UserFollow;
+// export type Entity = User | Post | Reply | PostLike | UserFollow;
