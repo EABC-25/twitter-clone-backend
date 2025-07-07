@@ -40,8 +40,6 @@ const protect = async (req: Request, res: Response, next: NextFunction) => {
       throw new CustomError("DB: User not found!", 404);
     }
 
-    // console.log(results);
-
     req.body.user = results;
 
     next();

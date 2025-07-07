@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+// I might need this in testing environments especially with the seeder
 export const BufferSchema = z.object({
   type: z.literal("Buffer"),
   data: z.array(z.union([z.literal(0), z.literal(1)])).length(1),

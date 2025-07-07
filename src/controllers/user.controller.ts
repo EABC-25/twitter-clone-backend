@@ -20,6 +20,8 @@ import {
   getUserCountInDb,
 } from "../services/user.service";
 
+import { UserResponseSchema } from "src/utils/zod/User";
+
 export const getUsers = async (req: Request, res: Response) => {
   try {
     const results = await getUsersFromDb();
@@ -58,21 +60,13 @@ export const getUserFromToken = async (req: Request, res: Response) => {
       userInfoChangeCount,
     } = req.body.user[0];
 
-    const dnp = displayNamePermanent ? displayNamePermanent[0] === 1 : false;
-
-    const v = verified ? verified[0] === 1 : false;
-
-    // if (!v) {
-    //   throw new CustomError("User: User is not yet verified!", 403);
-    // }
-
     const lpRes = await getUserLikedPostsFromDb(userId);
     const lpResMappedVals: string[] = lpRes.map(obj => obj.postId);
 
     const userFollowsCount = await getUserFollowsCountFromDb(userId);
     const userPostsRepliesCount = await getUserPostsRepliesLimits(userId);
 
-    const user = {
+    const user = UserResponseSchema.parse({
       username,
       email,
       dates: {
@@ -83,9 +77,9 @@ export const getUserFromToken = async (req: Request, res: Response) => {
         dateOfBirthNum: "",
       },
       displayName,
-      displayNamePermanent: dnp,
+      displayNamePermanent,
       bioText,
-      verified: v,
+      verified,
       likedPosts: lpResMappedVals,
       profilePicture,
       headerPicture,
@@ -93,8 +87,7 @@ export const getUserFromToken = async (req: Request, res: Response) => {
       postCount: userPostsRepliesCount.postCount,
       replyCount: userPostsRepliesCount.replyCount,
       userInfoChangeCount,
-    };
-    // console.log("user: ", user);
+    });
 
     res.status(200).json({
       user: user,
@@ -117,45 +110,37 @@ export const getUserWithUserName = async (req: Request, res: Response) => {
       un as string
     );
 
-    if (results.length <= 0) {
+    if (results.length <= 0 || !results[0].userId) {
       throw new CustomError("DB: User not found!", 404);
     }
 
-    const dnp = results[0].displayNamePermanent
-      ? results[0].displayNamePermanent[0] === 1
-      : false;
-
-    const v = results[0].verified ? results[0].verified[0] === 1 : false;
-
-    // if (!v) {
-    //   throw new CustomError("User: User is not yet verified!", 403);
-    // }
-
     const userFollowsCount = await getUserFollowsCountFromDb(results[0].userId);
 
-    res.status(200).json({
-      user: {
-        username: results[0].username,
-        email: results[0].email,
-        dates: {
-          createdAt: results[0].createdAt,
-          createdAtShort: "",
-          dateOfBirth: results[0].dateOfBirth,
-          dateOfBirthShort: "",
-          dateOfBirthNum: "",
-        },
-        displayName: results[0].displayName,
-        displayNamePermanent: dnp,
-        bioText: results[0].bioText,
-        verified: v,
-        likedPosts: null,
-        profilePicture: results[0].profilePicture,
-        headerPicture: results[0].headerPicture,
-        userFollowsCount,
-        postCount: null,
-        replyCount: null,
-        userInfoChangeCount: null,
+    const user = UserResponseSchema.parse({
+      username: results[0].username,
+      email: results[0].email,
+      dates: {
+        createdAt: results[0].createdAt,
+        createdAtShort: "",
+        dateOfBirth: results[0].dateOfBirth,
+        dateOfBirthShort: "",
+        dateOfBirthNum: "",
       },
+      displayName: results[0].displayName,
+      displayNamePermanent: results[0].displayNamePermanent,
+      bioText: results[0].bioText,
+      verified: results[0].verified,
+      likedPosts: null,
+      profilePicture: results[0].profilePicture,
+      headerPicture: results[0].headerPicture,
+      userFollowsCount,
+      postCount: null,
+      replyCount: null,
+      userInfoChangeCount: null,
+    });
+
+    res.status(200).json({
+      user: user,
     });
   } catch (err) {
     handleError(err, res);
@@ -264,7 +249,7 @@ export const getUserFollows = async (req: Request, res: Response) => {
       username as string
     );
 
-    if (user.length === 0) {
+    if (user.length === 0 || !user[0].userId) {
       throw new CustomError("DB: Not Found", 400);
     }
 
@@ -291,7 +276,7 @@ export const updateUserFollows = async (req: Request, res: Response) => {
       updates.otherUser as string
     );
 
-    if (otherUserId.length === 0) {
+    if (otherUserId.length === 0 || !otherUserId[0].userId) {
       throw new CustomError("DB: Not Found", 400);
     }
 
@@ -342,48 +327,104 @@ export const getUserPostsRepliesLimitsTest = async (
   }
 };
 
-// export const getUserTest = async (req: Request, res: Response) => {
-//   try {
-//     const { userId } = req.query;
+export const getUserFromTokenTest = async (req: Request, res: Response) => {
+  try {
+    const userId = "3e686ac1-477c-11f0-ab22-88a4c22b5dbc";
+    const username = "usertesting";
+    const email = "usertesting@email.com";
+    const createdAt = new Date("2025-06-12T18:58:59.000Z");
+    const dateOfBirth = new Date("2025-06-12T18:58:59.000Z");
+    const displayName = "usertesting";
+    const displayNamePermanent = false;
+    const bioText = "";
+    const verified = true;
+    const profilePicture = null;
+    const headerPicture = null;
+    const userInfoChangeCount = 0;
 
-//     const results = await getUserFromDb(
-//       `SELECT userId, username, email, createdAt, displayName, displayNamePermanent, dateOfBirth, bioText, verified, profilePicture, headerPicture FROM users WHERE userId = ?`,
-//       userId as string
-//     );
+    const lpRes = await getUserLikedPostsFromDb(userId);
+    const lpResMappedVals: string[] = lpRes.map(obj => obj.postId);
 
-//     if (results.length <= 0) {
-//       throw new CustomError("DB: User not found!", 404);
-//     }
+    const userFollowsCount = await getUserFollowsCountFromDb(userId);
+    const userPostsRepliesCount = await getUserPostsRepliesLimits(userId);
 
-//     const dnp = results[0].displayNamePermanent
-//       ? results[0].displayNamePermanent[0] === 1
-//       : false;
+    const user = UserResponseSchema.parse({
+      username,
+      email,
+      dates: {
+        createdAt,
+        createdAtShort: "",
+        dateOfBirth,
+        dateOfBirthShort: "",
+        dateOfBirthNum: "",
+      },
+      displayName,
+      displayNamePermanent,
+      bioText,
+      verified,
+      likedPosts: lpResMappedVals,
+      profilePicture,
+      headerPicture,
+      userFollowsCount,
+      postCount: userPostsRepliesCount.postCount,
+      replyCount: userPostsRepliesCount.replyCount,
+      userInfoChangeCount,
+    });
 
-//     const v = results[0].verified ? results[0].verified[0] === 1 : false;
+    res.status(200).json({
+      user: user,
+    });
+  } catch (err) {
+    handleError(err, res);
+  }
+};
 
-//     if (!v) {
-//       throw new CustomError("User: User is not yet verified!", 403);
-//     }
+export const getUserWithUserNameTest = async (req: Request, res: Response) => {
+  try {
+    const un = "usertesting";
 
-//     const lpRes = await getUserLikedPostsFromDb(results[0].userId);
-//     const lpResMappedVals: string[] = lpRes.map(obj => obj.postId);
+    if (!un) {
+      throw new CustomError("DB: User not found!", 404);
+    }
 
-//     res.status(200).json({
-//       user: {
-//         username: results[0].username,
-//         email: results[0].email,
-//         createdAt: results[0].createdAt,
-//         displayName: results[0].displayName,
-//         displayNamePermanent: dnp,
-//         dateOfBirth: results[0].dateOfBirth,
-//         bioText: results[0].bioText,
-//         verified: v,
-//         likedPosts: lpResMappedVals,
-//         profilePicture: results[0].profilePicture,
-//         headerPicture: results[0].headerPicture,
-//       },
-//     });
-//   } catch (err) {
-//     handleError(err, res);
-//   }
-// };
+    const results = await getUserFromDb(
+      `SELECT userId, username, email, createdAt, displayName, displayNamePermanent, dateOfBirth, bioText, verified, profilePicture, headerPicture FROM users WHERE username = ?`,
+      un as string
+    );
+
+    if (results.length <= 0 || !results[0].userId) {
+      throw new CustomError("DB: User not found!", 404);
+    }
+
+    const userFollowsCount = await getUserFollowsCountFromDb(results[0].userId);
+
+    const user = UserResponseSchema.parse({
+      username: results[0].username,
+      email: results[0].email,
+      dates: {
+        createdAt: results[0].createdAt,
+        createdAtShort: "",
+        dateOfBirth: results[0].dateOfBirth,
+        dateOfBirthShort: "",
+        dateOfBirthNum: "",
+      },
+      displayName: results[0].displayName,
+      displayNamePermanent: results[0].displayNamePermanent,
+      bioText: results[0].bioText,
+      verified: results[0].verified,
+      likedPosts: null,
+      profilePicture: results[0].profilePicture,
+      headerPicture: results[0].headerPicture,
+      userFollowsCount,
+      postCount: null,
+      replyCount: null,
+      userInfoChangeCount: null,
+    });
+
+    res.status(200).json({
+      user: user,
+    });
+  } catch (err) {
+    handleError(err, res);
+  }
+};

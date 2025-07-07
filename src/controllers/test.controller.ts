@@ -4,7 +4,12 @@ import validator from "validator";
 
 import db from "../db";
 import { handleError } from "../utils";
+import {
+  getUsersFromDb,
+  getUserLikedPostsFromDb,
+} from "src/services/user.service";
 
+// I use this endpoint for testing thru postman
 export const endPointTest = async (req: Request, res: Response) => {
   try {
     // await getUserFromDb(
@@ -33,9 +38,11 @@ export const endPointTest = async (req: Request, res: Response) => {
 
     // type UpdatableKey = keyof UserInfoUpdates;
 
+    const data = await getUsersFromDb();
+
     // console.log((Object.keys(updatesCopy) as UpdatableKey[]).slice(0, 7));
 
-    res.status(200).json({ message: "nothing happened here.." });
+    res.status(200).json({ message: "nothing happened here..", data });
   } catch (err) {
     handleError(err, res);
   }

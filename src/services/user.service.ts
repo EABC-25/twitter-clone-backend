@@ -1,30 +1,55 @@
 import db from "../db/index";
 
-import { type User, type UserFollows, type UserSearch } from "../utils";
+import { type UserFollows, type UserSearch } from "../utils";
+import {
+  UserSchema,
+  UserPartialSchema,
+  UserFollowsSchema,
+  UserFollowsTallySchema,
+  UserPostRepliesLimitsSchema,
+  type User,
+  type UserPartial,
+  type UserFollowsTally,
+  type UserPostRepliesLimits,
+} from "src/utils/zod/User";
+import { PostIdSchema, type PostId } from "src/utils/zod/Post";
 
 export const getUserFromDb = async (
   query: string,
   index: string
-): Promise<User[]> => {
+): Promise<UserPartial[]> => {
   const rows = await db.executeRows(query, [index]);
 
-  return rows[0] as User[];
+  const users = rows[0].map((user: unknown) => {
+    return UserPartialSchema.parse(user);
+  });
+
+  return users;
 };
 
 export const getUsersFromDb = async (): Promise<User[]> => {
   const rows = await db.executeRows(`SELECT * FROM users`);
-  return rows[0] as User[];
+
+  const users = rows[0].map((user: unknown) => {
+    return UserSchema.parse(user);
+  });
+
+  return users;
 };
 
 export const getUserLikedPostsFromDb = async (
   userId: string
-): Promise<{ postId: string }[]> => {
+): Promise<PostId[]> => {
   const rows = await db.executeRows(
     `SELECT postId FROM post_likes WHERE userId = ?`,
     [userId]
   );
 
-  return rows[0] as { postId: string }[];
+  const postIds = rows[0].map((id: unknown) => {
+    return PostIdSchema.parse(id);
+  });
+
+  return postIds;
 };
 
 export const getUserFollowsFromDb = async (
@@ -71,12 +96,7 @@ export const getUserFollowsFromDb = async (
 
 export const getUserFollowsCountFromDb = async (
   userId: string
-): Promise<{
-  followingCount: number;
-  followersCount: number;
-  following: string[] | null;
-  followers: string[] | null;
-} | null> => {
+): Promise<UserFollowsTally> => {
   const following = await db.executeRows(
     `
       SELECT
@@ -113,20 +133,17 @@ export const getUserFollowsCountFromDb = async (
           return Object.values(f);
         });
 
-  return {
+  return UserFollowsTallySchema.parse({
     followingCount: f1.length > 0 ? f1.length : 0,
     followersCount: f2.length ? f2.length : 0,
     following: f1.length > 0 ? f1 : null,
     followers: f2.length > 0 ? f2 : null,
-  };
+  });
 };
 
 export const getUserPostsRepliesLimits = async (
   userId: string
-): Promise<{
-  postCount: number;
-  replyCount: number;
-}> => {
+): Promise<UserPostRepliesLimits> => {
   const postsResult = await db.executeRows(
     `SELECT COUNT(*) FROM posts WHERE userId = ?`,
     [userId]
@@ -136,10 +153,10 @@ export const getUserPostsRepliesLimits = async (
     [userId]
   );
 
-  return {
+  return UserPostRepliesLimitsSchema.parse({
     postCount: postsResult[0][0]["COUNT(*)"],
     replyCount: repliesResult[0][0]["COUNT(*)"],
-  };
+  });
 };
 
 export const deleteUserFromDb = async (email: string): Promise<boolean> => {

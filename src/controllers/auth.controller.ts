@@ -213,15 +213,15 @@ export const login = async (req: Request, res: Response) => {
       email as string
     );
 
-    if (results.length <= 0) {
+    if (results.length <= 0 || !results[0].password || !results[0].userId) {
       throw new CustomError("DB: User/Email not found!", 404);
     }
 
-    const v = results[0].verified ? results[0].verified[0] === 1 : false;
+    // const v = results[0].verified ? results[0].verified[0] === 1 : false;
 
-    if (!v) {
-      throw new CustomError("User: User is not yet verified!", 403);
-    }
+    // if (!v) {
+    //   throw new CustomError("User: User is not yet verified!", 403);
+    // }
 
     const isMatching = await comparePassword(password, results[0].password);
 

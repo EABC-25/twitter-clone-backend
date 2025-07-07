@@ -7,7 +7,7 @@ import {
 import * as userService from "../../../src/services/user.service";
 import * as errorUtils from "../../../src/utils/error/errorHandler";
 import { mockUser } from "../../utils/data/data";
-import { type User } from "../../../src/utils";
+import type { User } from "src/utils/zod/User";
 
 describe("getUsers controller", () => {
   const req = {} as Request;
@@ -81,4 +81,16 @@ describe("getUserCount controller", () => {
   });
 });
 
-// describe("getUserWithToken controller", () => {});
+describe("getUserFromToken controller", () => {
+  const req = {} as Request;
+  const res = {
+    status: jest.fn().mockReturnThis(),
+    json: jest.fn(),
+  } as unknown as Response;
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("should return current user and status 200", async () => {});
+});
