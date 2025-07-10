@@ -1,10 +1,5 @@
 import { type Request, type Response } from "express";
-import {
-  type UserInfoUpdates,
-  CustomError,
-  handleError,
-  deleteMedia,
-} from "../utils";
+import { CustomError, handleError, deleteMedia } from "../utils";
 
 import {
   getUsersFromDb,
@@ -20,7 +15,13 @@ import {
   getUserCountInDb,
 } from "../services/user.service";
 
-import { UserResponseSchema } from "src/utils/zod/User";
+import {
+  UserEmailSchema,
+  UserResponseSchema,
+  UserInformationForUpdateSchema,
+  UserFollowsForUpdateSchema,
+  type UserInformationForUpdate,
+} from "src/utils/zod/User";
 
 export const getUsers = async (req: Request, res: Response) => {
   try {
@@ -151,6 +152,14 @@ export const deleteUser = async (req: Request, res: Response) => {
   try {
     // we need to pass cookie token here, but for this test email will suffice..
     const { email } = req.body;
+
+    // safeParse returns an object { success: true, data } || { success: false, error }
+    const emailCheck = UserEmailSchema.safeParse(email);
+
+    if (!emailCheck.success) {
+      throw new CustomError("Not a valid email", 404);
+    }
+
     if (!(await deleteUserFromDb(email))) {
       throw new CustomError("DB: User not found!", 404);
     }
@@ -174,7 +183,13 @@ export const updateUserProfile = async (req: Request, res: Response) => {
       throw new CustomError("User info change limit already reached!", 403);
     }
 
-    const updatesCopy: UserInfoUpdates = { ...updates };
+    const updatesCheck = UserInformationForUpdateSchema.safeParse(updates);
+
+    if (!updatesCheck.success) {
+      throw new CustomError("Unauthorized access!", 401);
+    }
+
+    const updatesCopy = updatesCheck.data;
 
     if (updatesCopy.email !== user[0].email) {
       throw new CustomError("Unauthorized access!", 401);
@@ -184,14 +199,15 @@ export const updateUserProfile = async (req: Request, res: Response) => {
     let updateValues: string[] = [];
     let updateStr: string = "";
 
-    type UpdatableKey = keyof UserInfoUpdates;
+    type UpdatableKey = keyof UserInformationForUpdate;
 
     (Object.keys(updatesCopy) as UpdatableKey[])
-      .slice(0, 7) // remove email, profilePictureActive and headerPictureActive
-      .forEach(v => {
-        if (updatesCopy[v]) {
-          updateValues.push(updatesCopy[v]);
-          updateKeys.push(` ${v} = ?`);
+      .filter(key => key !== "email") // remove email
+      .forEach(key => {
+        const value = updatesCopy[key];
+        if (value !== null && value !== undefined) {
+          updateValues.push(value);
+          updateKeys.push(` ${key} = ?`);
         }
       });
 
@@ -207,8 +223,9 @@ export const updateUserProfile = async (req: Request, res: Response) => {
 
     console.log("user updated prevMedia: ", prevMedia);
 
+    // !prevMedia means upload failed, take a look at updateUserInDb service for reference
     if (!prevMedia) {
-      //revert media upload if unsuccessful
+      // revert media upload if unsuccessful
       if (updatesCopy.profilePicture && updatesCopy.profilePicturePublicId) {
         await deleteMedia(updatesCopy.profilePicturePublicId, "image");
       }
@@ -217,6 +234,7 @@ export const updateUserProfile = async (req: Request, res: Response) => {
         await deleteMedia(updatesCopy.headerPicturePublicId, "image");
       }
 
+      // why are we throwing an error here? because we threw null from updateUserInDb service in order to activate !prevMedia conditional block. now that we have successfully reverted/deleted uploaded media, we can now throw error
       throw new CustomError(
         "Something went wrong.. please try again later",
         500
@@ -267,13 +285,21 @@ export const updateUserFollows = async (req: Request, res: Response) => {
   try {
     const { updates, user } = req.body;
 
-    if (user[0].username === updates.otherUser) {
-      throw new CustomError("DB: Unauthorized.", 403);
+    const updatesCheck = UserFollowsForUpdateSchema.safeParse(updates);
+
+    if (!updatesCheck.success) {
+      throw new CustomError("Not enough information.", 401);
+    }
+
+    const updatesChecked = updatesCheck.data;
+
+    if (user[0].username === updatesChecked.otherUser) {
+      throw new CustomError("Action not possible.", 403);
     }
 
     const otherUserId = await getUserFromDb(
       `SELECT userId FROM users WHERE username = ?`,
-      updates.otherUser as string
+      updatesChecked.otherUser as string
     );
 
     if (otherUserId.length === 0 || !otherUserId[0].userId) {
@@ -282,7 +308,7 @@ export const updateUserFollows = async (req: Request, res: Response) => {
 
     if (
       !(await updateUserFollowsInDb(
-        updates.type,
+        updatesChecked.type,
         user[0].userId,
         otherUserId[0].userId
       ))

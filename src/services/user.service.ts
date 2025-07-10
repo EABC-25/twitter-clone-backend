@@ -1,18 +1,32 @@
 import db from "../db/index";
 
-import { type UserFollows, type UserSearch } from "../utils";
 import {
   UserSchema,
   UserPartialSchema,
-  UserFollowsSchema,
   UserFollowsTallySchema,
+  UserFollowsObjectSchema,
   UserPostRepliesLimitsSchema,
+  UserCountSchema,
+  UserMediaPublicIdSchema,
+  UserSearchSchema,
   type User,
   type UserPartial,
   type UserFollowsTally,
+  type UserFollowsObject,
   type UserPostRepliesLimits,
+  type UserCount,
+  type UserMediaPublicId,
+  type UserSearch,
 } from "src/utils/zod/User";
 import { PostIdSchema, type PostId } from "src/utils/zod/Post";
+
+export const getUserCountInDb = async (): Promise<UserCount> => {
+  const result = await db.executeRows(`SELECT COUNT(*) FROM users`);
+
+  return UserCountSchema.parse({
+    userCount: result[0][0]["COUNT(*)"],
+  });
+};
 
 export const getUserFromDb = async (
   query: string,
@@ -54,10 +68,7 @@ export const getUserLikedPostsFromDb = async (
 
 export const getUserFollowsFromDb = async (
   userId: string
-): Promise<{
-  following: UserFollows[];
-  followers: UserFollows[];
-}> => {
+): Promise<UserFollowsObject> => {
   const following = await db.executeRows(
     `
       SELECT
@@ -88,10 +99,10 @@ export const getUserFollowsFromDb = async (
     [userId]
   );
 
-  return {
-    following: following[0] as UserFollows[],
-    followers: followers[0] as UserFollows[],
-  };
+  return UserFollowsObjectSchema.parse({
+    following: following[0],
+    followers: followers[0],
+  });
 };
 
 export const getUserFollowsCountFromDb = async (
@@ -164,7 +175,7 @@ export const deleteUserFromDb = async (email: string): Promise<boolean> => {
     email,
   ]);
 
-  if (rows[0].affectedRows > 0) return true;
+  if (rows[0] && rows[0].affectedRows > 0) return true;
 
   return false;
 };
@@ -173,10 +184,7 @@ export const updateUserInDb = async (
   query: string,
   queryParams: string[],
   userId: string
-): Promise<{
-  profilePicturePublicId: string;
-  headerPicturePublicId: string;
-} | null> => {
+): Promise<UserMediaPublicId | null> => {
   try {
     const prevMedia = await db.executeRows(
       `SELECT profilePicturePublicId, headerPicturePublicId FROM users WHERE userId = ?`,
@@ -189,11 +197,9 @@ export const updateUserInDb = async (
       return null;
     }
 
-    return prevMedia[0][0] as {
-      profilePicturePublicId: string;
-      headerPicturePublicId: string;
-    };
+    return UserMediaPublicIdSchema.parse(prevMedia[0][0]);
   } catch (err) {
+    // why are we throwing null here instead of handling the error? because we need to activate !prevMedia conditional block in order to revert/delete uploaded media, after that updateUserProfile controller will throw and catch the error
     return null;
   }
 };
@@ -234,15 +240,10 @@ export const getUsersSearchedFromDb = async (): Promise<UserSearch[]> => {
   const rows = await db.executeRows(
     `SELECT profilePicture, username, displayName FROM users`
   );
-  return rows[0] as UserSearch[];
-};
 
-export const getUserCountInDb = async (): Promise<{
-  userCount: number;
-}> => {
-  const result = await db.executeRows(`SELECT COUNT(*) FROM users`);
+  const users = rows[0].map((user: unknown) => {
+    return UserSearchSchema.parse(user);
+  });
 
-  return {
-    userCount: result[0][0]["COUNT(*)"],
-  };
+  return users;
 };
