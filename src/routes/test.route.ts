@@ -11,6 +11,6 @@ import {
 const router = express.Router();
 
 // test route
-router.get("/endpointTest", authLimiter, getUserWithUserNameTest);
+router.get("/endpointTest", authLimiter, endPointTest);
 
 export default router;

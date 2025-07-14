@@ -1,4 +1,5 @@
 import db from "../db/index";
+import { type NewUser } from "../utils";
 
 import {
   UserSchema,
@@ -19,6 +20,28 @@ import {
   type UserSearch,
 } from "src/utils/zod/User";
 import { PostIdSchema, type PostId } from "src/utils/zod/Post";
+
+export const checkUserInDb = async (
+  column: string,
+  arg: string
+): Promise<boolean> => {
+  const result = await db.executeRows(
+    `SELECT EXISTS(SELECT 1 FROM users WHERE ${column} = ?)`,
+    [arg]
+  );
+
+  // SHAPE:
+  // result = [
+  //   [ { 'EXISTS(SELECT 1 FROM users WHERE email = ?)': 1 } ],
+  //   [ `EXISTS(SELECT 1 FROM users WHERE email = ?)` BIGINT(1) NOT NULL ]
+  // ]
+
+  if (Object.values(result[0][0])[0] === 1) {
+    return true;
+  }
+
+  return false;
+};
 
 export const getUserCountInDb = async (): Promise<UserCount> => {
   const result = await db.executeRows(`SELECT COUNT(*) FROM users`);
@@ -170,6 +193,25 @@ export const getUserPostsRepliesLimits = async (
   });
 };
 
+export const addUserToDb = async (newUser: NewUser): Promise<boolean> => {
+  const rows = await db.executeResult(
+    `INSERT INTO users ( username, email, password, displayName, dateOfBirth, verificationToken, verificationExpire) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [
+      newUser.username,
+      newUser.email,
+      newUser.password,
+      newUser.displayName,
+      newUser.dateOfBirth,
+      newUser.verificationToken,
+      newUser.verificationExpire,
+    ]
+  );
+
+  if (rows?.[0]?.affectedRows > 0) return true;
+
+  return false;
+};
+
 export const deleteUserFromDb = async (email: string): Promise<boolean> => {
   const rows = await db.executeResult(`DELETE FROM users WHERE email = ?`, [
     email,
@@ -246,4 +288,19 @@ export const getUsersSearchedFromDb = async (): Promise<UserSearch[]> => {
   });
 
   return users;
+};
+
+export const checkUserWithEmail = async (
+  email: string
+): Promise<{ email: string } | null> => {
+  const rows = await db.executeRows(`SELECT email FROM users WHERE email = ?`, [
+    email,
+  ]);
+
+  if (!rows[0] || rows[0].length === 0) {
+    return null;
+  }
+
+  // we only need to return the first one because email is a UNIQUE value...
+  return rows[0][0] as { email: string };
 };

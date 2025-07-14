@@ -1,16 +1,18 @@
 import { z } from "zod";
 
+import { containsAnySpecialCharacter } from "../helpers/helpers";
 import { BufferSchema } from "./Buffer";
 import { DatesSchema } from "./Dates";
 import { PostIdSchema } from "./Post";
 
-export const UserEmailSchema = z.string().email();
+export const UserEmailSchema = z.string().email().min(8).max(100);
 
 export const UserSchema = z.object({
   userId: z.string(),
   createdAt: z.date(),
   username: z.string(),
   email: UserEmailSchema,
+  // this password is the hashed password stored in the db
   password: z.string(),
   displayName: z.string(),
   displayNamePermanent: z.instanceof(Buffer).transform(buf => buf[0] === 1),
@@ -27,6 +29,30 @@ export const UserSchema = z.object({
   userInfoChangeCount: z.number().nullable(),
   profilePicturePublicId: z.string().nullable(),
   headerPicturePublicId: z.string().nullable(),
+});
+
+export const NewUserFromRequestSchema = UserSchema.pick({
+  email: true,
+}).extend({
+  username: z
+    .string()
+    .min(8)
+    .max(50)
+    .refine(val => !containsAnySpecialCharacter(val)),
+  // password here is the raw password from frontend
+  password: z.string().min(8).max(100),
+  dateOfBirth: z.string(),
+});
+
+export const NewUserToDbSchema = UserSchema.pick({
+  username: true,
+  email: true,
+  password: true,
+  displayName: true,
+  verificationToken: true,
+  verificationExpire: true,
+}).extend({
+  dateOfBirth: z.string(),
 });
 
 export const UserPartialSchema = UserSchema.partial();
@@ -63,7 +89,7 @@ export const UserPostRepliesLimitsSchema = z.object({
   replyCount: z.number().nullable(),
 });
 
-export const UserResponseSchema = UserSchema.pick({
+export const UserToResponseSchema = UserSchema.pick({
   username: true,
   email: true,
   displayName: true,
@@ -114,8 +140,20 @@ export const UserFollowsForUpdateSchema = z.object({
   otherUser: z.string(),
 });
 
+export const VerifyEmailSchema = UserSchema.pick({
+  email: true,
+}).extend({
+  token: z.string(),
+});
+
+export const LoginSchema = NewUserFromRequestSchema.pick({
+  email: true,
+  password: true,
+});
+
 export type UserEmail = z.infer<typeof UserEmailSchema>;
 export type User = z.infer<typeof UserSchema>;
+export type NewUserToDb = z.infer<typeof NewUserToDbSchema>;
 export type UserPartial = z.infer<typeof UserPartialSchema>;
 export type SeedUser = z.infer<typeof SeedUserSchema>;
 export type UserFollows = z.infer<typeof UserFollowsSchema>;

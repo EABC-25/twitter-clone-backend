@@ -17,7 +17,7 @@ import {
 
 import {
   UserEmailSchema,
-  UserResponseSchema,
+  UserToResponseSchema,
   UserInformationForUpdateSchema,
   UserFollowsForUpdateSchema,
   type UserInformationForUpdate,
@@ -67,7 +67,7 @@ export const getUserFromToken = async (req: Request, res: Response) => {
     const userFollowsCount = await getUserFollowsCountFromDb(userId);
     const userPostsRepliesCount = await getUserPostsRepliesLimits(userId);
 
-    const user = UserResponseSchema.parse({
+    const user = UserToResponseSchema.parse({
       username,
       email,
       dates: {
@@ -117,7 +117,7 @@ export const getUserWithUserName = async (req: Request, res: Response) => {
 
     const userFollowsCount = await getUserFollowsCountFromDb(results[0].userId);
 
-    const user = UserResponseSchema.parse({
+    const user = UserToResponseSchema.parse({
       username: results[0].username,
       email: results[0].email,
       dates: {
@@ -374,7 +374,7 @@ export const getUserFromTokenTest = async (req: Request, res: Response) => {
     const userFollowsCount = await getUserFollowsCountFromDb(userId);
     const userPostsRepliesCount = await getUserPostsRepliesLimits(userId);
 
-    const user = UserResponseSchema.parse({
+    const user = UserToResponseSchema.parse({
       username,
       email,
       dates: {
@@ -424,7 +424,7 @@ export const getUserWithUserNameTest = async (req: Request, res: Response) => {
 
     const userFollowsCount = await getUserFollowsCountFromDb(results[0].userId);
 
-    const user = UserResponseSchema.parse({
+    const user = UserToResponseSchema.parse({
       username: results[0].username,
       email: results[0].email,
       dates: {

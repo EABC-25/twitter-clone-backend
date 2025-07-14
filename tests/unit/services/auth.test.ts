@@ -8,6 +8,7 @@ import { mockNewUser } from "../../utils/data/data";
 
 jest.mock("../../../src/db");
 
+// addUserToDb and checkUserWithEmail will be transferred to user.service
 describe("addUserToDb service", () => {
   afterEach(() => {
     jest.clearAllMocks();

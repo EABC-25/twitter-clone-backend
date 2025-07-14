@@ -7,6 +7,7 @@ import { handleError } from "../utils";
 import {
   getUsersFromDb,
   getUserLikedPostsFromDb,
+  checkUserInDb,
 } from "src/services/user.service";
 
 // I use this endpoint for testing thru postman
@@ -38,11 +39,11 @@ export const endPointTest = async (req: Request, res: Response) => {
 
     // type UpdatableKey = keyof UserInfoUpdates;
 
-    const data = await getUsersFromDb();
+    const data = await checkUserInDb("email", "usertesting@email.com");
 
     // console.log((Object.keys(updatesCopy) as UpdatableKey[]).slice(0, 7));
 
-    res.status(200).json({ message: "nothing happened here..", data });
+    res.status(200).json({ message: "test message", data });
   } catch (err) {
     handleError(err, res);
   }

@@ -1,8 +1,14 @@
 import { type Request, type Response } from "express";
 import { CookieOptions } from "express";
 import validator from "validator";
+
 import {
-  type NewUser,
+  NewUserFromRequestSchema,
+  NewUserToDbSchema,
+  VerifyEmailSchema,
+  LoginSchema,
+} from "src/utils/zod/User";
+import {
   CustomError,
   handleError,
   comparePassword,
@@ -11,12 +17,14 @@ import {
   generateHashedToken,
   generateJWToken,
 } from "../utils";
+import {
+  checkUserInDb,
+  getUserFromDb,
+  getUserCountInDb,
+  addUserToDb,
+} from "../services/user.service";
+import { verifyUserInDb } from "../services/auth.service";
 
-import { getUserFromDb, getUserCountInDb } from "../services/user.service";
-
-import { addUserToDb, verifyUserInDb } from "../services/auth.service";
-
-// we need to add all possible routes here like "settings/account" or just block usage of \ or any special character as username
 const frontendRoutes = [
   "landing",
   "home",
@@ -32,28 +40,6 @@ const frontendRoutes = [
   "media",
 ];
 
-// export const checkToken = async (req: Request, res: Response) => {
-//   try {
-//     // testing
-//     res.status(200).json({ success: true });
-//   } catch (err) {
-//     handleError(err, res);
-//   }
-// };
-
-// export const checkEmail = async (req: Request, res: Response) => {
-//   try {
-//     // testing
-//     const results = await checkUserWithEmail("admin12345@gmail.com");
-
-//     if (results.length <= 0) throw new CustomError("DB: Email not found!", 404);
-
-//     res.status(200).json({ message: "Email found." });
-//   } catch (err) {
-//     handleError(err, res);
-//   }
-// };
-
 export const register = async (req: Request, res: Response) => {
   try {
     const { userCount } = await getUserCountInDb();
@@ -63,7 +49,13 @@ export const register = async (req: Request, res: Response) => {
       throw new CustomError("User count limit already reached!", 500);
     }
 
-    const { username, email, password, dateOfBirth } = req.body;
+    const { username, email, password, dateOfBirth } =
+      NewUserFromRequestSchema.parse({
+        username: req.body.username,
+        email: req.body.email,
+        password: req.body.password,
+        dateOfBirth: req.body.dateOfBirth,
+      });
 
     if (!username || !email || !password || !dateOfBirth) {
       throw new CustomError("Invalid request!", 500);
@@ -77,38 +69,27 @@ export const register = async (req: Request, res: Response) => {
       throw new CustomError("User: Invalid email!", 406);
     }
 
-    const existingUsername = await getUserFromDb(
-      `SELECT EXISTS(SELECT 1 FROM users WHERE username = ?)`,
-      username as string
-    );
+    const usernameExists = await checkUserInDb("username", username);
 
-    const existingEmail = await getUserFromDb(
-      `SELECT EXISTS(SELECT 1 FROM users WHERE email = ?)`,
-      email as string
-    );
+    const emailExists = await checkUserInDb("email", email);
 
-    // in the future, we need to configure the response to also include specific codes that differentiate the existence of username or email instead of using 401, 403 or 404
-    if (
-      Object.values(existingUsername[0])[0] === 1 &&
-      Object.values(existingEmail[0])[0] === 1
-    ) {
+    // TO DO: refactor each error sent to the frontend to include code that signals which error message to display in the frontend. Right now we are using http status codes (400+) in the frontend - since we have lots of edge cases like the below... we are running out of status codes to use.
+    if (usernameExists && emailExists) {
       throw new CustomError("DB: User and Email already exists!", 401);
     }
 
-    if (Object.values(existingUsername[0])[0] === 1) {
+    if (usernameExists) {
       throw new CustomError("DB: User already exists!", 403);
     }
 
-    if (Object.values(existingEmail[0])[0] === 1) {
+    if (emailExists) {
       throw new CustomError("DB: Email already exists!", 404);
     }
-
-    // throw new CustomError("test", 501);
 
     const hashedPassword = await hashPassword(password);
     const { token, hashedToken, expiration } = generateVerificationToken();
     // since we removed email verification due to financial reasons... we need to mark verified as true in query
-    const newUser: NewUser = {
+    const newUser = NewUserToDbSchema.parse({
       username: username as string,
       email: email as string,
       password: hashedPassword,
@@ -116,7 +97,7 @@ export const register = async (req: Request, res: Response) => {
       dateOfBirth: dateOfBirth,
       verificationToken: hashedToken,
       verificationExpire: expiration,
-    };
+    });
 
     if (!(await addUserToDb(newUser))) {
       throw new CustomError(
@@ -142,7 +123,10 @@ export const register = async (req: Request, res: Response) => {
 
 export const verifyEmail = async (req: Request, res: Response) => {
   try {
-    const { token, email } = req.body;
+    const { token, email } = VerifyEmailSchema.parse({
+      token: req.body.token,
+      email: req.body.email,
+    });
 
     if (!token) {
       throw new CustomError("User: token does not exist!", 400);
@@ -164,17 +148,12 @@ export const verifyEmail = async (req: Request, res: Response) => {
       throw new CustomError("DB: User not found!", 404);
     }
 
-    const processed = results.map(row => ({
-      ...row,
-      verified: row.verified ? row.verified[0] === 1 : false,
-    }));
-
-    if (processed[0].verified) {
+    if (results[0].verified) {
       throw new CustomError("User: User is already verified!", 403);
     }
 
-    const userToken = processed[0].verificationToken;
-    const userTokenExp = processed[0].verificationExpire;
+    const userToken = results[0].verificationToken;
+    const userTokenExp = results[0].verificationExpire;
 
     if (
       userToken === hashedToken &&
@@ -202,7 +181,10 @@ export const verifyEmail = async (req: Request, res: Response) => {
 
 export const login = async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body;
+    const { email, password } = LoginSchema.parse({
+      email: req.body.email,
+      password: req.body.password,
+    });
 
     if (!validator.isEmail(email as string)) {
       throw new CustomError("User: Invalid email!", 401);
@@ -216,12 +198,6 @@ export const login = async (req: Request, res: Response) => {
     if (results.length <= 0 || !results[0].password || !results[0].userId) {
       throw new CustomError("DB: User/Email not found!", 404);
     }
-
-    // const v = results[0].verified ? results[0].verified[0] === 1 : false;
-
-    // if (!v) {
-    //   throw new CustomError("User: User is not yet verified!", 403);
-    // }
 
     const isMatching = await comparePassword(password, results[0].password);
 
