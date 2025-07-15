@@ -15,9 +15,11 @@ import { getUserFromDb } from "../services/user.service";
 import {
   addPostToDb,
   deletePostInDb,
-  checkPostsInDb,
+  checkExistingPostsInDb,
+  checkExistingPostsInDbUsingId,
   getPostsFromDb,
   getPostFromDb,
+  getUserIdFromPost,
   getUserPostsFromDb,
   updatePostLikesInDb,
   addReplyToDb,
@@ -30,7 +32,8 @@ import {
 export const getMediaUploadSign = async (req: Request, res: Response) => {
   try {
     const mediaSign = signUploadForm();
-    // ISN'T THIS FUNCTION INSECURE?? BRO WE NEED TO CIRCLE BACK SOME POINT IN THE NEAR FUTURE AND FIX THIS FUNCTIONALITY??
+
+    // thinking if we should build zod schema for this
     res.status(200).json({
       signature: mediaSign.signature,
       timestamp: mediaSign.timestamp,
@@ -51,7 +54,7 @@ export const getHomePosts = async (req: Request, res: Response) => {
       throw new CustomError("No page received.", 404);
     }
 
-    const exists = await checkPostsInDb();
+    const exists = await checkExistingPostsInDb();
     if (!exists) {
       res.status(200).json({
         posts: [],
@@ -66,23 +69,13 @@ export const getHomePosts = async (req: Request, res: Response) => {
     const offset = (pageNum - 1) * limit;
     const results = await getPostsFromDb(limit, offset);
 
-    if (results.length <= 0) {
-      throw new CustomError("DB: No more posts to return.", 404);
-    }
+    // apparently - {posts: [], nextPage: false} also passes the parse ... although we already have blocker for zero posts above (!exists).. most likely this edge case won't be possible.. my reasoning as to why I am not removing the !exists conditional above including the checkExistingPostsInDb service even though we are already returning that here is because checkExistingPostsInDb's query is I think will be more resource efficient ????
 
-    let response: ResponsePosts = {
-      posts: results,
-      nextPage: false,
-    };
+    // if (results.posts.length <= 0) {
+    //   throw new CustomError("DB: No more posts to return.", 404);
+    // }
 
-    if (response.posts.length > limit) {
-      response.posts = response.posts.slice(0, 30);
-      response.nextPage = true;
-    } else {
-      response.nextPage = false;
-    }
-
-    res.status(200).json(response);
+    res.status(200).json(results);
   } catch (err) {
     handleError(err, res);
   }
@@ -96,10 +89,7 @@ export const getPost = async (req: Request, res: Response) => {
       throw new CustomError("No postId received.", 404);
     }
 
-    const post = await getPostFromDb(
-      `SELECT posts.postId, posts.createdAt, posts.postText, posts.postMedia, posts.mediaTypes, posts.likeCount, posts.replyCount, users.username, users.displayName, users.profilePicture FROM posts JOIN users WHERE posts.userId = users.userId AND postId = ?`,
-      postId as string
-    );
+    const post = await getPostFromDb(postId as string);
 
     if (post.length <= 0) {
       throw new CustomError("DB: post not found.", 404);
@@ -127,7 +117,10 @@ export const getUserPosts = async (req: Request, res: Response) => {
       throw new CustomError("DB: Resource not found..", 400);
     }
 
-    const exists = await checkPostsInDb(userId[0].userId as string);
+    const exists = await checkExistingPostsInDbUsingId(
+      "userId",
+      userId[0].userId as string
+    );
     if (!exists) {
       res.status(200).json({
         posts: [],
@@ -146,19 +139,7 @@ export const getUserPosts = async (req: Request, res: Response) => {
       userId[0].userId as string
     );
 
-    let response: ResponsePosts = {
-      posts: results,
-      nextPage: false,
-    };
-
-    if (response.posts.length > limit) {
-      response.posts = response.posts.slice(0, 30);
-      response.nextPage = true;
-    } else {
-      response.nextPage = false;
-    }
-
-    res.status(200).json(response);
+    res.status(200).json(results);
   } catch (err) {
     handleError(err, res);
   }
@@ -250,12 +231,9 @@ export const addReply = async (req: Request, res: Response) => {
       throw new CustomError("Replies limit already reached!", 403);
     }
 
-    const resPost = await getPostFromDb(
-      "SELECT userId FROM posts WHERE postId = ?",
-      postId as string
-    );
+    const resPost = await getUserIdFromPost(postId as string);
 
-    if (resPost.length <= 0) {
+    if (!resPost) {
       throw new CustomError("DB: Post not found!", 404);
     }
 
@@ -283,7 +261,7 @@ export const addReply = async (req: Request, res: Response) => {
     const newReply = await addReplyToDb({
       postId: postId,
       replierId: user[0].userId,
-      posterId: resPost[0].userId as string,
+      posterId: resPost.userId as string,
       postText: sanitizedHtml,
     });
 
@@ -305,12 +283,7 @@ export const getPostReplies = async (req: Request, res: Response) => {
       throw new CustomError("DB: Operation failed!.", 404);
     }
 
-    const resPost = await getPostFromDb(
-      "SELECT EXISTS(SELECT 1 FROM posts WHERE postId = ?)",
-      postId as string
-    );
-
-    if (Object.values(resPost[0])[0] !== 1) {
+    if (!(await checkExistingPostsInDbUsingId("postId", postId as string))) {
       throw new CustomError("DB: Post not found!", 404);
     }
 

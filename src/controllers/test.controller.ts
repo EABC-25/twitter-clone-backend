@@ -9,6 +9,7 @@ import {
   getUserLikedPostsFromDb,
   checkUserInDb,
 } from "src/services/user.service";
+import { getPostsFromDb, getUserIdFromPost } from "src/services/post.service";
 
 // I use this endpoint for testing thru postman
 export const endPointTest = async (req: Request, res: Response) => {
@@ -39,7 +40,9 @@ export const endPointTest = async (req: Request, res: Response) => {
 
     // type UpdatableKey = keyof UserInfoUpdates;
 
-    const data = await checkUserInDb("email", "usertesting@email.com");
+    const data = await getUserIdFromPost(
+      "dc0d1a2a-44f6-11f0-ab22-88a4c22b5dbc"
+    );
 
     // console.log((Object.keys(updatesCopy) as UpdatableKey[]).slice(0, 7));
 

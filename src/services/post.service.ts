@@ -1,22 +1,32 @@
-import { type RowDataPacket } from "mysql2";
-
 import db from "../db";
 import { type Post, type NewPost, type Reply, type NewReply } from "../utils";
+import { UserIdSchema, type UserId } from "src/utils/zod/User";
+import {
+  PostPartialStrictSchema,
+  PostToResponseSchema,
+  type PostPartialStrict,
+  type PostToResponse,
+} from "src/utils/zod/Post";
 
-export const checkPostsInDb = async (userId?: string): Promise<boolean> => {
-  const query = `SELECT EXISTS(SELECT 1 FROM posts${
-    userId && " WHERE userId = ?"
-  })`;
-
-  let result: [RowDataPacket[], any] | undefined;
-
-  if (!userId) {
-    result = await db.executeRows(`
+export const checkExistingPostsInDb = async (): Promise<boolean> => {
+  const result = await db.executeRows(`
     SELECT EXISTS(SELECT 1 FROM posts);
     `);
-  } else {
-    result = await db.executeRows(query, [userId]);
+
+  if (Object.values(result[0][0])[0] === 1) {
+    return true;
   }
+  return false;
+};
+
+export const checkExistingPostsInDbUsingId = async (
+  column: string,
+  arg: string
+): Promise<boolean> => {
+  const result = await db.executeRows(
+    `SELECT EXISTS(SELECT 1 FROM posts WHERE ${column} = ?)`,
+    [arg]
+  );
 
   if (Object.values(result[0][0])[0] === 1) {
     return true;
@@ -25,42 +35,115 @@ export const checkPostsInDb = async (userId?: string): Promise<boolean> => {
 };
 
 export const getPostFromDb = async (
-  query: string,
-  index: string
-): Promise<Post[]> => {
-  const rows = await db.executeRows(query, [index]);
+  arg: string
+): Promise<PostPartialStrict[]> => {
+  // I know postId is unique and is already indexed by the db... but maybe we can still optimize this query some more?? since it is returning an array, possibly it is not expecting to only get 1 right? so maybe it still somehow checks all the other entries in the db for postId equality?? or maybe I'm using the wrong db method (db.executeRows)???
+  const rows = await db.executeRows(
+    `
+      SELECT 
+        posts.postId, 
+        posts.createdAt, 
+        posts.postText, 
+        posts.postMedia, 
+        posts.mediaTypes, 
+        posts.likeCount, 
+        posts.replyCount, 
+        users.username, 
+        users.displayName, 
+        users.profilePicture 
+          FROM posts JOIN users 
+          WHERE posts.userId = users.userId AND postId = ?
+          `,
+    [arg]
+  );
 
-  return rows[0] as Post[];
+  const data = rows[0].map(post => {
+    return PostPartialStrictSchema.parse(post);
+  });
+
+  return data;
+};
+
+export const getUserIdFromPost = async (
+  postId: string
+): Promise<UserId | null> => {
+  const rows = await db.executeRows(
+    "SELECT userId FROM posts WHERE postId = ?",
+    [postId]
+  );
+
+  if (rows[0].length) {
+    return UserIdSchema.parse(rows[0][0]);
+  }
+
+  return null;
 };
 
 export const getPostsFromDb = async (
   limit: number,
   offset: number
-): Promise<Post[]> => {
+): Promise<PostToResponse> => {
+  // adding one more to limit here so that we can signal frontend if there are more posts to retrieve after this batch through type ResponsePost.nextPage
   const rows = await db.executeRows(
-    `SELECT posts.postId, posts.createdAt, posts.postText, posts.postMedia, posts.mediaTypes, posts.likeCount, posts.replyCount, users.username, users.displayName, users.profilePicture FROM posts JOIN users WHERE posts.userId = users.userId ORDER BY createdAt DESC
-    LIMIT ${limit + 1} OFFSET ${offset}`
+    `
+    SELECT 
+      posts.postId, 
+      posts.createdAt, 
+      posts.postText, 
+      posts.postMedia, 
+      posts.mediaTypes, 
+      posts.likeCount, 
+      posts.replyCount, 
+      users.username, 
+      users.displayName, 
+      users.profilePicture 
+        FROM posts JOIN users 
+        WHERE posts.userId = users.userId 
+        ORDER BY createdAt DESC
+        LIMIT ${limit + 1} OFFSET ${offset}
+    `
   );
 
-  // adding one more to limit here so that we can signal frontend if there are more posts to retrieve after this batch through type ResponsePost.nextPage
-  return rows[0] as Post[];
+  const data = PostToResponseSchema.parse({
+    posts: rows[0].length > limit ? rows[0].slice(0, 30) : rows[0],
+    nextPage: rows[0].length > limit ? true : false,
+  });
+  // apparently - {posts: [], nextPage: false} also passes the parse, therefore we need to block 0 posts in controller
+
+  return data;
 };
 
 export const getUserPostsFromDb = async (
   limit: number,
   offset: number,
   userId: string
-): Promise<Post[]> => {
+): Promise<PostToResponse> => {
   const rows = await db.executeRows(
     `
-    SELECT posts.postId, posts.createdAt, posts.postText, posts.postMedia, posts.mediaTypes, posts.likeCount, posts.replyCount, users.username, users.displayName, users.profilePicture FROM posts JOIN users WHERE posts.userId = users.userId AND posts.userId = ?
-    ORDER BY createdAt DESC
-    LIMIT ${limit + 1} OFFSET ${offset}
+    SELECT 
+      posts.postId, 
+      posts.createdAt, 
+      posts.postText, 
+      posts.postMedia, 
+      posts.mediaTypes, 
+      posts.likeCount, 
+      posts.replyCount, 
+      users.username, 
+      users.displayName, 
+      users.profilePicture 
+        FROM posts JOIN users 
+        WHERE posts.userId = users.userId AND posts.userId = ?
+        ORDER BY createdAt DESC
+        LIMIT ${limit + 1} OFFSET ${offset}
     `,
     [userId]
   );
-  // adding one more to limit here so that we can signal frontend if there are more posts to retrieve after this batch through type ResponsePost.nextPage
-  return rows[0] as Post[];
+  const data = PostToResponseSchema.parse({
+    posts: rows[0].length > limit ? rows[0].slice(0, 30) : rows[0],
+    nextPage: rows[0].length > limit ? true : false,
+  });
+
+  return data;
 };
 
 export const addPostToDb = async (newPost: NewPost): Promise<Post | null> => {

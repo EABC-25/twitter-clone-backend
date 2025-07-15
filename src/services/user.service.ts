@@ -3,7 +3,7 @@ import { type NewUser } from "../utils";
 
 import {
   UserSchema,
-  UserPartialSchema,
+  UserPartialNonStrictSchema,
   UserFollowsTallySchema,
   UserFollowsObjectSchema,
   UserPostRepliesLimitsSchema,
@@ -11,7 +11,7 @@ import {
   UserMediaPublicIdSchema,
   UserSearchSchema,
   type User,
-  type UserPartial,
+  type UserPartialNonStrict,
   type UserFollowsTally,
   type UserFollowsObject,
   type UserPostRepliesLimits,
@@ -54,11 +54,11 @@ export const getUserCountInDb = async (): Promise<UserCount> => {
 export const getUserFromDb = async (
   query: string,
   index: string
-): Promise<UserPartial[]> => {
+): Promise<UserPartialNonStrict[]> => {
   const rows = await db.executeRows(query, [index]);
 
   const users = rows[0].map((user: unknown) => {
-    return UserPartialSchema.parse(user);
+    return UserPartialNonStrictSchema.parse(user);
   });
 
   return users;

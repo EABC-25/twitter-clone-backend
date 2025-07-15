@@ -31,6 +31,10 @@ export const UserSchema = z.object({
   headerPicturePublicId: z.string().nullable(),
 });
 
+export const UserIdSchema = UserSchema.pick({
+  userId: true,
+});
+
 export const NewUserFromRequestSchema = UserSchema.pick({
   email: true,
 }).extend({
@@ -41,6 +45,7 @@ export const NewUserFromRequestSchema = UserSchema.pick({
     .refine(val => !containsAnySpecialCharacter(val)),
   // password here is the raw password from frontend
   password: z.string().min(8).max(100),
+  // we need to build regex that will check dateOfBirth structure - `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
   dateOfBirth: z.string(),
 });
 
@@ -55,7 +60,7 @@ export const NewUserToDbSchema = UserSchema.pick({
   dateOfBirth: z.string(),
 });
 
-export const UserPartialSchema = UserSchema.partial();
+export const UserPartialNonStrictSchema = UserSchema.partial();
 
 export const SeedUserSchema = UserSchema.extend({
   createdAt: z.string(),
@@ -153,8 +158,9 @@ export const LoginSchema = NewUserFromRequestSchema.pick({
 
 export type UserEmail = z.infer<typeof UserEmailSchema>;
 export type User = z.infer<typeof UserSchema>;
+export type UserId = z.infer<typeof UserIdSchema>;
 export type NewUserToDb = z.infer<typeof NewUserToDbSchema>;
-export type UserPartial = z.infer<typeof UserPartialSchema>;
+export type UserPartialNonStrict = z.infer<typeof UserPartialNonStrictSchema>;
 export type SeedUser = z.infer<typeof SeedUserSchema>;
 export type UserFollows = z.infer<typeof UserFollowsSchema>;
 export type UserFollowsTally = z.infer<typeof UserFollowsTallySchema>;
