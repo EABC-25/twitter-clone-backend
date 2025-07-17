@@ -61,9 +61,7 @@ export const getUserFromToken = async (req: Request, res: Response) => {
       userInfoChangeCount,
     } = req.body.user[0];
 
-    const lpRes = await getUserLikedPostsFromDb(userId);
-    const lpResMappedVals: string[] = lpRes.map(obj => obj.postId);
-
+    const likedPosts = await getUserLikedPostsFromDb(userId);
     const userFollowsCount = await getUserFollowsCountFromDb(userId);
     const userPostsRepliesCount = await getUserPostsRepliesLimits(userId);
 
@@ -81,7 +79,7 @@ export const getUserFromToken = async (req: Request, res: Response) => {
       displayNamePermanent,
       bioText,
       verified,
-      likedPosts: lpResMappedVals,
+      likedPosts,
       profilePicture,
       headerPicture,
       userFollowsCount,
@@ -368,9 +366,7 @@ export const getUserFromTokenTest = async (req: Request, res: Response) => {
     const headerPicture = null;
     const userInfoChangeCount = 0;
 
-    const lpRes = await getUserLikedPostsFromDb(userId);
-    const lpResMappedVals: string[] = lpRes.map(obj => obj.postId);
-
+    const likedPosts = await getUserLikedPostsFromDb(userId);
     const userFollowsCount = await getUserFollowsCountFromDb(userId);
     const userPostsRepliesCount = await getUserPostsRepliesLimits(userId);
 
@@ -388,7 +384,7 @@ export const getUserFromTokenTest = async (req: Request, res: Response) => {
       displayNamePermanent,
       bioText,
       verified,
-      likedPosts: lpResMappedVals,
+      likedPosts,
       profilePicture,
       headerPicture,
       userFollowsCount,

@@ -7,26 +7,17 @@ const isCustomError = (err: unknown): err is CustomError => {
 
 export const handleError = (err: unknown, res: Response) => {
   const errCode = isCustomError(err) ? err.code : 500;
-  const errMessage =
-    err instanceof Error ? err.message : "An unknown error occurred";
+  const errMessage = isCustomError(err)
+    ? err.message
+    : "An unknown error occurred";
 
-  // REMINDER: WE NEED TO ALSO ADD CHECKS HERE FOR ZOD OR MYSQL ERRORS, ESPECIALLY SINCE WE USED ONLY 'PARSE' IN OUR SERVICES... 'PARSE' AUTOMATICALLY THROWS ZOD ERROR
+  // ONLY CUSTOMERROR WILL RETURN A SPECIFIC ERROR CODE, ALL OTHER TYPES WILL PASS AS 500 - "An unknown error occurred"
 
   // if (process.env.NODE_ENV !== "test") {
   //   console.error("Error: ", err);
   // }
 
   console.error("Error: ", err);
-
-  if (errCode === 500) {
-    res.status(500).json({
-      success: false,
-      error: errCode,
-      message: "Something went wrong, please try again later.",
-    });
-
-    return;
-  }
 
   res.status(errCode).json({
     success: false,

@@ -3,7 +3,6 @@ import { z } from "zod";
 import { containsAnySpecialCharacter } from "../helpers/helpers";
 import { BufferSchema } from "./Buffer";
 import { DatesSchema } from "./Dates";
-import { PostIdSchema } from "./Post";
 
 export const UserEmailSchema = z.string().email().min(8).max(100);
 

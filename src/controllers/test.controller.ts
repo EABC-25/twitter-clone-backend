@@ -40,8 +40,8 @@ export const endPointTest = async (req: Request, res: Response) => {
 
     // type UpdatableKey = keyof UserInfoUpdates;
 
-    const data = await getUserIdFromPost(
-      "dc0d1a2a-44f6-11f0-ab22-88a4c22b5dbc"
+    const data = await getUserLikedPostsFromDb(
+      "56e1120c-44f9-11f0-ab22-88a4c22b5dbc"
     );
 
     // console.log((Object.keys(updatesCopy) as UpdatableKey[]).slice(0, 7));

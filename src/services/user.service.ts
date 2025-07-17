@@ -11,6 +11,7 @@ import {
   UserMediaPublicIdSchema,
   UserSearchSchema,
   type User,
+  type NewUserToDb,
   type UserPartialNonStrict,
   type UserFollowsTally,
   type UserFollowsObject,
@@ -82,9 +83,11 @@ export const getUserLikedPostsFromDb = async (
     [userId]
   );
 
-  const postIds = rows[0].map((id: unknown) => {
-    return PostIdSchema.parse(id);
-  });
+  let postIds: PostId[] = [];
+
+  for (let i = 0; i < rows[0].length; i++) {
+    postIds.push(PostIdSchema.parse(rows[0][i].postId));
+  }
 
   return postIds;
 };
@@ -193,7 +196,7 @@ export const getUserPostsRepliesLimits = async (
   });
 };
 
-export const addUserToDb = async (newUser: NewUser): Promise<boolean> => {
+export const addUserToDb = async (newUser: NewUserToDb): Promise<boolean> => {
   const rows = await db.executeResult(
     `INSERT INTO users ( username, email, password, displayName, dateOfBirth, verificationToken, verificationExpire) VALUES (?, ?, ?, ?, ?, ?, ?)`,
     [

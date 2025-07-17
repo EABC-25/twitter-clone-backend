@@ -3,9 +3,15 @@ import { type Post, type NewPost, type Reply, type NewReply } from "../utils";
 import { UserIdSchema, type UserId } from "src/utils/zod/User";
 import {
   PostPartialStrictSchema,
+  ReplyPartialStrictSchema,
   PostToResponseSchema,
+  ReplyToResponseSchema,
   type PostPartialStrict,
+  type ReplyPartialStrict,
   type PostToResponse,
+  type ReplyToResponse,
+  type NewPostToDb,
+  type NewReplyToDb,
 } from "src/utils/zod/Post";
 
 export const checkExistingPostsInDb = async (): Promise<boolean> => {
@@ -36,7 +42,7 @@ export const checkExistingPostsInDbUsingId = async (
 
 export const getPostFromDb = async (
   arg: string
-): Promise<PostPartialStrict[]> => {
+): Promise<PostPartialStrict | null> => {
   // I know postId is unique and is already indexed by the db... but maybe we can still optimize this query some more?? since it is returning an array, possibly it is not expecting to only get 1 right? so maybe it still somehow checks all the other entries in the db for postId equality?? or maybe I'm using the wrong db method (db.executeRows)???
   const rows = await db.executeRows(
     `
@@ -57,11 +63,12 @@ export const getPostFromDb = async (
     [arg]
   );
 
-  const data = rows[0].map(post => {
-    return PostPartialStrictSchema.parse(post);
-  });
+  if (rows[0].length === 0) {
+    return null;
+  }
 
-  return data;
+  // should only return 1
+  return PostPartialStrictSchema.parse(rows[0][0]);
 };
 
 export const getUserIdFromPost = async (
@@ -146,27 +153,30 @@ export const getUserPostsFromDb = async (
   return data;
 };
 
-export const addPostToDb = async (newPost: NewPost): Promise<Post | null> => {
-  const resultId = await db.executeRows(`SELECT UUID() AS uuid;`);
+export const addPostToDb = async (
+  newPost: NewPostToDb
+): Promise<PostPartialStrict | null> => {
+  try {
+    const resultId = await db.executeRows(`SELECT UUID() AS uuid;`);
 
-  const newUuid = resultId[0][0].uuid;
+    const newUuid = resultId[0][0].uuid;
 
-  const resultPost = await db.executeResult(
-    `INSERT INTO posts (postId, userId, postText, postMedia, mediaTypes, mediaPublicId) VALUES (?, ?, ?, ?, ?, ?)`,
-    [
-      newUuid,
-      newPost.userId,
-      newPost.postText,
-      newPost.postMedia,
-      newPost.mediaTypes,
-      newPost.mediaPublicId,
-    ]
-  );
+    const resultPost = await db.executeResult(
+      `INSERT INTO posts (postId, userId, postText, postMedia, mediaTypes, mediaPublicId) VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        newUuid,
+        newPost.userId,
+        newPost.postText,
+        newPost.postMedia,
+        newPost.mediaTypes,
+        newPost.mediaPublicId,
+      ]
+    );
 
-  if (resultPost[0].affectedRows <= 0) return null;
+    if (resultPost[0].affectedRows <= 0) return null;
 
-  const resultNewPost = await db.executeRows(
-    `SELECT 
+    const resultNewPost = await db.executeRows(
+      `SELECT 
         posts.postId, 
         posts.createdAt, 
         posts.postText, 
@@ -181,19 +191,17 @@ export const addPostToDb = async (newPost: NewPost): Promise<Post | null> => {
       JOIN users 
       WHERE posts.userId = users.userId 
       AND posts.postId = ?`,
-    [newUuid]
-  );
+      [newUuid]
+    );
 
-  if (resultNewPost[0].length === 0) return null;
+    if (resultNewPost[0].length === 0) return null;
 
-  // const resultLimits = await db.executeResult(
-  //   `UPDATE users SET postCount = postCount + 1 WHERE userId = ?`,
-  //   [newPost.userId]
-  // );
-
-  // if (resultLimits[0].affectedRows === 0) return null;
-
-  return resultNewPost[0][0] as Post;
+    return PostPartialStrictSchema.parse(resultNewPost[0][0]);
+  } catch (err) {
+    // why are we returning null?, because controller will throw the CustomError while we print here the error from MySQL
+    console.error(err);
+    return null;
+  }
 };
 
 export const updatePostLikesInDb = async (
@@ -248,34 +256,35 @@ export const updatePostLikesInDb = async (
 };
 
 export const addReplyToDb = async (
-  newReply: NewReply
-): Promise<Reply | null> => {
-  const resultId = await db.executeRows(`SELECT UUID() AS uuid;`);
+  newReply: NewReplyToDb
+): Promise<ReplyPartialStrict | null> => {
+  try {
+    const resultId = await db.executeRows(`SELECT UUID() AS uuid;`);
 
-  const newUuid = resultId[0][0].uuid;
+    const newUuid = resultId[0][0].uuid;
 
-  const resultReply = await db.executeResult(
-    `INSERT INTO replies (replyId, postId, replierId, posterId, postText) VALUES (?, ?, ?, ?, ?)`,
-    [
-      newUuid,
-      newReply.postId,
-      newReply.replierId,
-      newReply.posterId,
-      newReply.postText,
-    ]
-  );
+    const resultReply = await db.executeResult(
+      `INSERT INTO replies (replyId, postId, replierId, posterId, postText) VALUES (?, ?, ?, ?, ?)`,
+      [
+        newUuid,
+        newReply.postId,
+        newReply.replierId,
+        newReply.posterId,
+        newReply.postText,
+      ]
+    );
 
-  if (resultReply[0].affectedRows <= 0) return null;
+    if (resultReply[0].affectedRows <= 0) return null;
 
-  const postResult = await db.executeResult(
-    `UPDATE posts SET replyCount = replyCount + 1 WHERE postId = ?`,
-    [newReply.postId]
-  );
+    const postResult = await db.executeResult(
+      `UPDATE posts SET replyCount = replyCount + 1 WHERE postId = ?`,
+      [newReply.postId]
+    );
 
-  if (postResult[0].affectedRows <= 0) return null;
+    if (postResult[0].affectedRows <= 0) return null;
 
-  const resultNewReply = await db.executeRows(
-    `SELECT 
+    const resultNewReply = await db.executeRows(
+      `SELECT 
         replies.replyId, 
         replies.postId, 
         u1.username AS replierUserName, 
@@ -290,26 +299,25 @@ export const addReplyToDb = async (
       JOIN users AS u1 ON replies.replierId = u1.userId
       JOIN users AS u2 ON replies.posterId = u2.userId
       WHERE replies.replyId = ?`,
-    [newUuid]
-  );
+      [newUuid]
+    );
 
-  if (resultNewReply[0].length === 0) return null;
+    if (resultNewReply[0].length === 0) return null;
 
-  // const resultLimits = await db.executeResult(
-  //   `UPDATE users SET replyCount = replyCount + 1 WHERE userId = ?`,
-  //   [newReply.replierId]
-  // );
-
-  // if (resultLimits[0].affectedRows === 0) return null;
-
-  return resultNewReply[0][0] as Reply;
+    return ReplyPartialStrictSchema.parse(resultNewReply[0][0]);
+  } catch (err) {
+    // why are we returning null?, because controller will throw the CustomError while we print here the error from MySQL
+    console.error(err);
+    return null;
+  }
 };
 
 export const getPostRepliesFromDb = async (
   limit: number,
   offset: number,
-  postId: string
-): Promise<Reply[]> => {
+  postId: string,
+  currPage: number
+): Promise<ReplyToResponse> => {
   const rows = await db.executeRows(
     `
     SELECT 
@@ -333,17 +341,42 @@ export const getPostRepliesFromDb = async (
     [postId]
   );
 
-  // adding one more to limit here so that we can signal frontend if there are more posts to retrieve after this batch through type ResponsePost.nextPage
-  return rows[0] as Reply[];
+  const data = ReplyToResponseSchema.parse({
+    replies: rows[0].length > limit ? rows[0].slice(0, 30) : rows[0],
+    nextPage: rows[0].length > limit ? true : false,
+    nextPageCount: currPage + 1,
+  });
+
+  return data;
 };
 
 export const getReplyFromDb = async (
-  query: string,
   index: string
-): Promise<Reply[]> => {
-  const rows = await db.executeRows(query, [index]);
+): Promise<ReplyPartialStrict | null> => {
+  const rows = await db.executeRows(
+    `SELECT 
+        replies.replyId, 
+        replies.postId, 
+        u1.username AS replierUserName, 
+        u1.displayName AS replierDisplayName, 
+        u1.profilePicture AS replierProfilePicture, 
+        u2.username AS posterUserName, 
+        replies.createdAt, 
+        replies.postText, 
+        replies.likeCount, 
+        replies.replyCount 
+      FROM replies 
+      JOIN users AS u1 ON replies.replierId = u1.userId
+      JOIN users AS u2 ON replies.posterId = u2.userId
+      WHERE replies.replyId = ?`,
+    [index]
+  );
 
-  return rows[0] as Reply[];
+  if (rows[0].length === 0) {
+    return null;
+  }
+
+  return ReplyPartialStrictSchema.parse(rows[0][0]);
 };
 
 export const updateReplyLikesInDb = async (
@@ -406,42 +439,39 @@ export const deletePostInDb = async (
   mediaTypes: string;
   replyCount: number;
 } | null> => {
-  const mediaResult = await db.executeRows(
-    `SELECT mediaPublicId, mediaTypes FROM posts WHERE postId = ?`,
-    [postId]
-  );
-  const deletePost = await db.executeResult(
-    `DELETE FROM posts WHERE postId = ?`,
-    [postId]
-  );
+  try {
+    const mediaResult = await db.executeRows(
+      `SELECT mediaPublicId, mediaTypes FROM posts WHERE postId = ?`,
+      [postId]
+    );
+    const deletePost = await db.executeResult(
+      `DELETE FROM posts WHERE postId = ?`,
+      [postId]
+    );
 
-  const deleteReply = Promise.resolve(
-    db.executeResult(`DELETE FROM replies WHERE postId = ?`, [postId])
-  );
+    const deleteReply = Promise.resolve(
+      db.executeResult(`DELETE FROM replies WHERE postId = ?`, [postId])
+    );
 
-  const deleteLikes = Promise.resolve(
-    db.executeResult(`DELETE FROM post_likes WHERE postId = ?`, [postId])
-  );
+    const deleteLikes = Promise.resolve(
+      db.executeResult(`DELETE FROM post_likes WHERE postId = ?`, [postId])
+    );
 
-  // const replyCount = mediaResult[0][0].replyCount;
+    Promise.all([deleteReply, deleteLikes]).then(_ => {});
 
-  // const deleteLimits = Promise.resolve(
-  //   db.executeResult(
-  //     `UPDATE users SET postCount = GREATEST(postCount - 1, 0), replyCount = GREATEST(replyCount - ?, 0) WHERE userId = ?`,
-  //     [replyCount, userId]
-  //   )
-  // );
-
-  Promise.all([deleteReply, deleteLikes]).then(_ => {});
-
-  if (deletePost[0].affectedRows >= 1) {
-    return mediaResult[0][0] as {
-      mediaPublicId: string;
-      mediaTypes: string;
-      replyCount: number;
-    };
+    if (deletePost[0].affectedRows >= 1) {
+      return mediaResult[0][0] as {
+        mediaPublicId: string;
+        mediaTypes: string;
+        replyCount: number;
+      };
+    }
+    return null;
+  } catch (err) {
+    // why are we returning null?, because controller will throw the CustomError while we print here the error from MySQL
+    console.error(err);
+    return null;
   }
-  return null;
 };
 
 export const deleteReplyInDb = async (
@@ -449,27 +479,33 @@ export const deleteReplyInDb = async (
   postId: string,
   userId: string
 ): Promise<boolean> => {
-  const deleteReply = await db.executeResult(
-    `DELETE FROM replies WHERE replyId = ?`,
-    [replyId]
-  );
+  try {
+    const deleteReply = await db.executeResult(
+      `DELETE FROM replies WHERE replyId = ?`,
+      [replyId]
+    );
 
-  const deleteLikes = Promise.resolve(
-    db.executeResult(`DELETE FROM post_likes WHERE postId = ?`, [replyId])
-  );
+    const deleteLikes = Promise.resolve(
+      db.executeResult(`DELETE FROM post_likes WHERE postId = ?`, [replyId])
+    );
 
-  const deleteReplyCount = Promise.resolve(
-    db.executeResult(
-      `UPDATE posts SET replyCount = GREATEST(replyCount - 1, 0) WHERE postId = ?`,
-      [postId]
-    )
-  );
+    const deleteReplyCount = Promise.resolve(
+      db.executeResult(
+        `UPDATE posts SET replyCount = GREATEST(replyCount - 1, 0) WHERE postId = ?`,
+        [postId]
+      )
+    );
 
-  Promise.all([deleteReplyCount, deleteLikes]).then(_ => {});
+    Promise.all([deleteReplyCount, deleteLikes]).then(_ => {});
 
-  if (deleteReply[0].affectedRows <= 0) {
+    if (deleteReply[0].affectedRows <= 0) {
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    // why are we returning false?, because controller will throw the CustomError while we print here the error from MySQL
+    console.error(err);
     return false;
   }
-
-  return true;
 };

@@ -1,5 +1,6 @@
 import { type Request, type Response } from "express";
 import sanitizeHtml from "sanitize-html";
+
 import {
   type ResponsePosts,
   type ResponseReplies,
@@ -9,9 +10,14 @@ import {
   signUploadForm,
   deleteMedia,
 } from "../utils";
-
+import {
+  NewPostFromRequestSchema,
+  NewPostToDbSchema,
+  UpdatePostLikesFromRequestSchema,
+  NewReplyFromRequestSchema,
+  NewReplyToDbSchema,
+} from "src/utils/zod/Post";
 import { getUserFromDb } from "../services/user.service";
-
 import {
   addPostToDb,
   deletePostInDb,
@@ -91,11 +97,11 @@ export const getPost = async (req: Request, res: Response) => {
 
     const post = await getPostFromDb(postId as string);
 
-    if (post.length <= 0) {
+    if (!post || post === null) {
       throw new CustomError("DB: post not found.", 404);
     }
 
-    res.status(200).json(post[0]);
+    res.status(200).json(post);
   } catch (err) {
     handleError(err, res);
   }
@@ -147,7 +153,15 @@ export const getUserPosts = async (req: Request, res: Response) => {
 
 export const addPost = async (req: Request, res: Response) => {
   try {
-    const { html, media, mediaPublicId, mediaTypes, user } = req.body;
+    const { user } = req.body;
+
+    const { html, media, mediaPublicId, mediaTypes } =
+      NewPostFromRequestSchema.parse({
+        html: req.body.html,
+        media: req.body.media,
+        mediaPublicId: req.body.mediaPublicId,
+        mediaTypes: req.body.mediaTypes,
+      });
 
     if (
       user[0].postCount >=
@@ -183,13 +197,15 @@ export const addPost = async (req: Request, res: Response) => {
       throw new CustomError("Empty post data received.", 404);
     }
 
-    const newPost = await addPostToDb({
-      userId: user[0].userId,
-      postText: sanitizedHtml,
-      postMedia: mediaStr,
-      mediaTypes: mediaTypesStr,
-      mediaPublicId: mediaPublicIdStr,
-    });
+    const newPost = await addPostToDb(
+      NewPostToDbSchema.parse({
+        userId: user[0].userId,
+        postText: sanitizedHtml,
+        postMedia: mediaStr,
+        mediaTypes: mediaTypesStr,
+        mediaPublicId: mediaPublicIdStr,
+      })
+    );
 
     if (!newPost || newPost === null) {
       throw new CustomError("DB: Failed to save post!", 500);
@@ -203,7 +219,12 @@ export const addPost = async (req: Request, res: Response) => {
 
 export const updatePostLikes = async (req: Request, res: Response) => {
   try {
-    const { type, id, user } = req.body;
+    const { user } = req.body;
+
+    const { id, type } = UpdatePostLikesFromRequestSchema.parse({
+      id: req.body.id,
+      type: req.body.type,
+    });
 
     const result = await updatePostLikesInDb(type, id, user[0].userId);
 
@@ -222,7 +243,12 @@ export const updatePostLikes = async (req: Request, res: Response) => {
 
 export const addReply = async (req: Request, res: Response) => {
   try {
-    const { html, postId, user } = req.body;
+    const { user } = req.body;
+
+    const { html, postId } = NewReplyFromRequestSchema.parse({
+      html: req.body.html,
+      postId: req.body.postId,
+    });
 
     if (
       user[0].replyCount >=
@@ -258,12 +284,14 @@ export const addReply = async (req: Request, res: Response) => {
       throw new CustomError("Empty post data received.", 404);
     }
 
-    const newReply = await addReplyToDb({
-      postId: postId,
-      replierId: user[0].userId,
-      posterId: resPost.userId as string,
-      postText: sanitizedHtml,
-    });
+    const newReply = await addReplyToDb(
+      NewReplyToDbSchema.parse({
+        postId: postId,
+        replierId: user[0].userId,
+        posterId: resPost.userId as string,
+        postText: sanitizedHtml,
+      })
+    );
 
     if (!newReply || newReply === null) {
       throw new CustomError("DB: Failed to save reply!", 500);
@@ -290,25 +318,14 @@ export const getPostReplies = async (req: Request, res: Response) => {
     const pageNum = Number(page);
     const limit: number = 5;
     const offset = (pageNum - 1) * limit;
-    const results = await getPostRepliesFromDb(limit, offset, postId as string);
+    const results = await getPostRepliesFromDb(
+      limit,
+      offset,
+      postId as string,
+      pageNum
+    );
 
-    // results.length === 0 will send back empty array
-
-    let response: ResponseReplies = {
-      replies: results,
-      nextPage: false,
-      nextPageCount: 0,
-    };
-
-    if (response.replies.length > 5) {
-      response.replies = response.replies.slice(0, 5);
-      response.nextPage = true;
-      response.nextPageCount = Number(page) + 1;
-    } else {
-      response.nextPage = false;
-    }
-
-    res.status(200).json(response);
+    res.status(200).json(results);
   } catch (err) {
     handleError(err, res);
   }
@@ -322,30 +339,13 @@ export const getReply = async (req: Request, res: Response) => {
       throw new CustomError("No postId received.", 404);
     }
 
-    const reply = await getReplyFromDb(
-      `SELECT 
-        replies.replyId, 
-        replies.postId, 
-        u1.username AS replierUserName, 
-        u1.displayName AS replierDisplayName, 
-        u1.profilePicture AS replierProfilePicture, 
-        u2.username AS posterUserName, 
-        replies.createdAt, 
-        replies.postText, 
-        replies.likeCount, 
-        replies.replyCount 
-      FROM replies 
-      JOIN users AS u1 ON replies.replierId = u1.userId
-      JOIN users AS u2 ON replies.posterId = u2.userId
-      WHERE replies.replyId = ?`,
-      replyId as string
-    );
+    const reply = await getReplyFromDb(replyId as string);
 
-    if (reply.length <= 0) {
+    if (!reply || reply === null) {
       throw new CustomError("DB: reply not found.", 404);
     }
 
-    res.status(200).json(reply[0]);
+    res.status(200).json(reply);
   } catch (err) {
     handleError(err, res);
   }
@@ -353,7 +353,12 @@ export const getReply = async (req: Request, res: Response) => {
 
 export const updateReplyLikes = async (req: Request, res: Response) => {
   try {
-    const { type, id, user } = req.body;
+    const { user } = req.body;
+
+    const { id, type } = UpdatePostLikesFromRequestSchema.parse({
+      id: req.body.id,
+      type: req.body.type,
+    });
 
     const result = await updateReplyLikesInDb(type, id, user[0].userId);
 
@@ -364,7 +369,6 @@ export const updateReplyLikes = async (req: Request, res: Response) => {
     res.status(200).json({
       success: true,
     });
-    // throw new CustomError("Error testing...", 404);
   } catch (err) {
     handleError(err, res);
   }
