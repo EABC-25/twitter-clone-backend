@@ -17,6 +17,8 @@ export const handleError = (err: unknown, res: Response) => {
   //   console.error("Error: ", err);
   // }
 
+  //test
+
   console.error("Error: ", err);
 
   res.status(errCode).json({
