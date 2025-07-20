@@ -3,6 +3,7 @@ import express from "express";
 import { endPointTest } from "../controllers/test.controller";
 import protect from "../middlewares/auth/protect";
 import { authLimiter } from "../middlewares/ratelimit/limiter";
+import { register } from "src/controllers/auth.controller";
 import {
   getUserFromTokenTest,
   getUserWithUserNameTest,
@@ -11,6 +12,6 @@ import {
 const router = express.Router();
 
 // test route
-router.get("/endpointTest", authLimiter, endPointTest);
+router.post("/endpointTest", authLimiter, register);
 
 export default router;

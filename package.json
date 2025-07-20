@@ -5,6 +5,7 @@
   "scripts": {
     "test:unit:watch": "jest --watchAll",
     "test:unit": "jest tests/unit",
+    "test:unit:single": "jest tests/unit/controllers/auth.test.ts",
     "test:integration": "cross-env NODE_ENV=test jest tests/integration --runInBand --detectOpenHandles",
     "type-check": "tsc",
     "dev": "tsx watch --clear-screen=false --env-file=.env src/index.ts",

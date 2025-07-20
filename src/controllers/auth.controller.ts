@@ -49,24 +49,21 @@ export const register = async (req: Request, res: Response) => {
       throw new CustomError("User count limit already reached!", 500);
     }
 
-    const { username, email, password, dateOfBirth } =
-      NewUserFromRequestSchema.parse({
-        username: req.body.username,
-        email: req.body.email,
-        password: req.body.password,
-        dateOfBirth: req.body.dateOfBirth,
-      });
+    const result = NewUserFromRequestSchema.safeParse({
+      username: req.body.username,
+      email: req.body.email,
+      password: req.body.password,
+      dateOfBirth: req.body.dateOfBirth,
+    });
 
-    if (!username || !email || !password || !dateOfBirth) {
+    if (!result.success) {
       throw new CustomError("Invalid request!", 500);
     }
 
+    const { username, email, password, dateOfBirth } = result.data;
+
     if (frontendRoutes.includes(username)) {
       throw new CustomError("DB: User already exists!", 403);
-    }
-
-    if (!validator.isEmail(email)) {
-      throw new CustomError("User: Invalid email!", 406);
     }
 
     const usernameExists = await checkUserInDb("username", username);
@@ -105,13 +102,6 @@ export const register = async (req: Request, res: Response) => {
         500
       );
     }
-
-    // if (!(await sendEmail(req, token, email))) {
-    //   // FALLBACK: we should either make a function that makes sure email was sent, or else we delete user in db so that user can use the email again to create a new user which will then send the email
-    //   // As long as email is sent initially - user can just click the link in the email to either finish the verification or resend email again if it fails
-    //   // GOOD SOLUTION: or we can create a route and frontend functionality like a button or link that the user can use to resend the email... YUP THIS IS A MORE PROPER SOLUTION! WE CAN SEND EMAIL ONLY AFTER EVERY 60 SECONDS
-    //   throw new CustomError("Email: Email sending failed!", 501);
-    // }
 
     res.status(201).json({
       success: true,
