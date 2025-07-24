@@ -1,6 +1,10 @@
 import { z } from "zod";
 
-import { containsAnySpecialCharacter } from "../helpers/helpers";
+import {
+  containsAnySpecialCharacter,
+  dateStringIsISO8601Valid,
+  dateStringIsAValidPreviouslyPassedDate,
+} from "../helpers/helpers";
 import { BufferSchema } from "./Buffer";
 import { DatesSchema } from "./Dates";
 
@@ -44,8 +48,13 @@ export const NewUserFromRequestSchema = UserSchema.pick({
     .refine(val => !containsAnySpecialCharacter(val)),
   // password here is the raw password from frontend
   password: z.string().min(8).max(100),
-  // we need to build regex that will check dateOfBirth structure - `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
-  dateOfBirth: z.string(),
+  dateOfBirth: z
+    .string()
+    .refine(
+      val =>
+        dateStringIsISO8601Valid(val) &&
+        dateStringIsAValidPreviouslyPassedDate(val)
+    ),
 });
 
 export const NewUserToDbSchema = UserSchema.pick({
@@ -147,7 +156,7 @@ export const UserFollowsForUpdateSchema = z.object({
 export const VerifyEmailSchema = UserSchema.pick({
   email: true,
 }).extend({
-  token: z.string(),
+  token: z.string().min(5),
 });
 
 export const LoginSchema = NewUserFromRequestSchema.pick({

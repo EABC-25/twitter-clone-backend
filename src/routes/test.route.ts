@@ -12,6 +12,6 @@ import {
 const router = express.Router();
 
 // test route
-router.post("/endpointTest", authLimiter, register);
+router.post("/endpointTest", authLimiter, endPointTest);
 
 export default router;

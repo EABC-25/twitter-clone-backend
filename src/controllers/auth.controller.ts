@@ -63,7 +63,7 @@ export const register = async (req: Request, res: Response) => {
     const { username, email, password, dateOfBirth } = result.data;
 
     if (frontendRoutes.includes(username)) {
-      throw new CustomError("DB: User already exists!", 403);
+      throw new CustomError("User already exists!", 403);
     }
 
     const usernameExists = await checkUserInDb("username", username);
@@ -72,15 +72,15 @@ export const register = async (req: Request, res: Response) => {
 
     // TO DO: refactor each error sent to the frontend to include code that signals which error message to display in the frontend. Right now we are using http status codes (400+) in the frontend - since we have lots of edge cases like the below... we are running out of status codes to use.
     if (usernameExists && emailExists) {
-      throw new CustomError("DB: User and Email already exists!", 401);
+      throw new CustomError("User and Email already exists!", 401);
     }
 
     if (usernameExists) {
-      throw new CustomError("DB: User already exists!", 403);
+      throw new CustomError("User already exists!", 403);
     }
 
     if (emailExists) {
-      throw new CustomError("DB: Email already exists!", 404);
+      throw new CustomError("Email already exists!", 404);
     }
 
     const hashedPassword = await hashPassword(password);
@@ -98,7 +98,7 @@ export const register = async (req: Request, res: Response) => {
 
     if (!(await addUserToDb(newUser))) {
       throw new CustomError(
-        "DB: Failed to register user!, username or email already taken or something went wrong in the server/db.",
+        "Failed to register user!, username or email already taken or something went wrong in the server/db.",
         500
       );
     }
@@ -113,18 +113,16 @@ export const register = async (req: Request, res: Response) => {
 
 export const verifyEmail = async (req: Request, res: Response) => {
   try {
-    const { token, email } = VerifyEmailSchema.parse({
+    const result = VerifyEmailSchema.safeParse({
       token: req.body.token,
       email: req.body.email,
     });
 
-    if (!token) {
-      throw new CustomError("User: token does not exist!", 400);
+    if (!result.success) {
+      throw new CustomError("Invalid request!", 500);
     }
 
-    if (!validator.isEmail(email as string)) {
-      throw new CustomError("User: Invalid email!", 401);
-    }
+    const { token, email } = result.data;
 
     const splitToken = String(token).split(".")[0];
     const hashedToken = generateHashedToken(splitToken);

@@ -197,22 +197,27 @@ export const getUserPostsRepliesLimits = async (
 };
 
 export const addUserToDb = async (newUser: NewUserToDb): Promise<boolean> => {
-  const rows = await db.executeResult(
-    `INSERT INTO users ( username, email, password, displayName, dateOfBirth, verificationToken, verificationExpire) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [
-      newUser.username,
-      newUser.email,
-      newUser.password,
-      newUser.displayName,
-      newUser.dateOfBirth,
-      newUser.verificationToken,
-      newUser.verificationExpire,
-    ]
-  );
+  try {
+    const rows = await db.executeResult(
+      `INSERT INTO users ( username, email, password, displayName, dateOfBirth, verificationToken, verificationExpire) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        newUser.username,
+        newUser.email,
+        newUser.password,
+        newUser.displayName,
+        newUser.dateOfBirth,
+        newUser.verificationToken,
+        newUser.verificationExpire,
+      ]
+    );
 
-  if (rows?.[0]?.affectedRows > 0) return true;
+    if (rows?.[0]?.affectedRows > 0) return true;
 
-  return false;
+    return false;
+  } catch (err) {
+    console.error("Error log:", err);
+    throw new Error("Error at addUserToDb service.");
+  }
 };
 
 export const deleteUserFromDb = async (email: string): Promise<boolean> => {

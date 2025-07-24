@@ -10,6 +10,10 @@ import {
   checkUserInDb,
 } from "src/services/user.service";
 import { getPostsFromDb, getUserIdFromPost } from "src/services/post.service";
+import {
+  dateStringIsISO8601Valid,
+  dateStringIsAValidPreviouslyPassedDate,
+} from "src/utils/helpers/helpers";
 
 // I use this endpoint for testing thru postman
 export const endPointTest = async (req: Request, res: Response) => {
@@ -40,9 +44,12 @@ export const endPointTest = async (req: Request, res: Response) => {
 
     // type UpdatableKey = keyof UserInfoUpdates;
 
-    const data = await getUserLikedPostsFromDb(
-      "56e1120c-44f9-11f0-ab22-88a4c22b5dbc"
-    );
+    // const data = await getUserLikedPostsFromDb(
+    //   "56e1120c-44f9-11f0-ab22-88a4c22b5dbc"
+    // );
+
+    // is it possible it does not work with 2 and it should be 02?
+    const data = dateStringIsISO8601Valid("2005-2-29");
 
     // console.log((Object.keys(updatesCopy) as UpdatableKey[]).slice(0, 7));
 
