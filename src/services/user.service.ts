@@ -56,13 +56,18 @@ export const getUserFromDb = async (
   query: string,
   index: string
 ): Promise<UserPartialNonStrict[]> => {
-  const rows = await db.executeRows(query, [index]);
+  try {
+    const rows = await db.executeRows(query, [index]);
 
-  const users = rows[0].map((user: unknown) => {
-    return UserPartialNonStrictSchema.parse(user);
-  });
+    const users = rows[0].map((user: unknown) => {
+      return UserPartialNonStrictSchema.parse(user);
+    });
 
-  return users;
+    return users;
+  } catch (err) {
+    console.error("Error log: ", err);
+    throw new Error("Error at getUserFromDb service.");
+  }
 };
 
 export const getUsersFromDb = async (): Promise<User[]> => {

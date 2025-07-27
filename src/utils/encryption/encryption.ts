@@ -71,9 +71,11 @@ export const generateVerificationToken = (): {
 
 export const generateHashedToken = (token: string): string => {
   try {
-    return createHmac("sha256", process.env.CRYPTO_SECRET as string)
+    const hashed = createHmac("sha256", process.env.CRYPTO_SECRET as string)
       .update(token)
       .digest("hex");
+
+    return hashed;
   } catch (err) {
     console.error("Error log: ", err);
     throw new Error("Error at generateHashedToken fn.");

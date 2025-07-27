@@ -132,24 +132,23 @@ export const verifyEmail = async (req: Request, res: Response) => {
       `SELECT email, verified, verificationToken, verificationExpire FROM users WHERE email = ?`,
       email as string
     );
-    if (results.length <= 0) {
-      throw new CustomError("DB: User not found!", 404);
+    if (results && results.length <= 0) {
+      throw new CustomError("User not found!", 404);
     }
 
     if (results[0].verified) {
-      throw new CustomError("User: User is already verified!", 403);
+      throw new CustomError("User is already verified!", 403);
     }
 
-    const userToken = results[0].verificationToken;
-    const userTokenExp = results[0].verificationExpire;
-
     if (
-      userToken === hashedToken &&
-      userTokenExp &&
-      Date.now() < userTokenExp
+      hashedToken === results[0].verificationToken &&
+      results[0].verificationExpire &&
+      Date.now() < results[0].verificationExpire
     ) {
-      if (!(await verifyUserInDb(email as string))) {
-        throw new CustomError("Db: Failed to update user!", 500);
+      const verifyResult = await verifyUserInDb(email as string);
+
+      if (!verifyResult) {
+        throw new CustomError("Failed to update user!", 500);
       }
 
       res.status(200).json({
@@ -159,7 +158,7 @@ export const verifyEmail = async (req: Request, res: Response) => {
     }
 
     throw new CustomError(
-      "Db: Failed to update user, Please check your credentials!",
+      "Failed to update user, Please check your credentials!",
       401
     );
   } catch (err) {
