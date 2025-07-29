@@ -9,6 +9,7 @@ import { BufferSchema } from "./Buffer";
 import { DatesSchema } from "./Dates";
 
 export const UserEmailSchema = z.string().email().min(8).max(100);
+const RawPasswordSchema = z.string().min(8).max(100);
 
 export const UserSchema = z.object({
   userId: z.string(),
@@ -16,6 +17,7 @@ export const UserSchema = z.object({
   username: z.string(),
   email: UserEmailSchema,
   // this password is the hashed password stored in the db
+  // we should make this clear moving forward, whether its raw password from frontend or hashed password from db
   password: z.string(),
   displayName: z.string(),
   displayNamePermanent: z.instanceof(Buffer).transform(buf => buf[0] === 1),
@@ -47,7 +49,7 @@ export const NewUserFromRequestSchema = UserSchema.pick({
     .max(50)
     .refine(val => !containsAnySpecialCharacter(val)),
   // password here is the raw password from frontend
-  password: z.string().min(8).max(100),
+  password: RawPasswordSchema,
   dateOfBirth: z
     .string()
     .refine(
@@ -159,9 +161,10 @@ export const VerifyEmailSchema = UserSchema.pick({
   token: z.string().min(5),
 });
 
-export const LoginSchema = NewUserFromRequestSchema.pick({
+export const LoginSchema = UserSchema.pick({
   email: true,
-  password: true,
+}).extend({
+  password: RawPasswordSchema,
 });
 
 export type UserEmail = z.infer<typeof UserEmailSchema>;

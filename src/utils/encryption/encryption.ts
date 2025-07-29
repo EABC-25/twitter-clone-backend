@@ -1,3 +1,4 @@
+import { CookieOptions, type Response } from "express";
 import bcrypt from "bcryptjs";
 import jsonwebtoken from "jsonwebtoken";
 import crypto from "crypto";
@@ -79,5 +80,48 @@ export const generateHashedToken = (token: string): string => {
   } catch (err) {
     console.error("Error log: ", err);
     throw new Error("Error at generateHashedToken fn.");
+  }
+};
+
+export const returnTokenizedResponse = async (
+  userId: string,
+  res: Response,
+  action?: string
+): Promise<Response> => {
+  try {
+    const production: boolean = process.env.NODE_ENV === "production";
+
+    const options: CookieOptions = {
+      httpOnly: true,
+      expires: new Date(
+        Date.now() +
+          (parseInt(process.env.JWT_COOKIE_EXPIRE as string) || 1) *
+            60 *
+            1000 *
+            60 *
+            24
+      ), // 24 hours or 1 day
+      sameSite: production ? "none" : "strict",
+      secure: production ? true : false,
+    };
+
+    if (production) {
+      options.domain = process.env.DOMAIN_URL;
+    }
+
+    if (action === "logout") {
+      options.expires = new Date(Date.now());
+
+      res.cookie("token", "none", options);
+      return res;
+    } else {
+      const jwToken = generateJWToken(userId);
+
+      res.cookie("token", jwToken, options);
+      return res;
+    }
+  } catch (err) {
+    console.error("Error log: ", err);
+    throw new Error("Error at returnTokenizedResponse fn.");
   }
 };

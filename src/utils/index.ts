@@ -22,6 +22,7 @@ import {
   generateJWToken,
   generateVerificationToken,
   generateHashedToken,
+  returnTokenizedResponse,
 } from "./encryption/encryption";
 import { sendEmail } from "./email/email";
 import cloudinaryConfig from "./config/cloudinary.config";
@@ -53,4 +54,5 @@ export {
   cloudinaryConfig,
   signUploadForm,
   deleteMedia,
+  returnTokenizedResponse,
 };

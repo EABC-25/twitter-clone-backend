@@ -3,6 +3,8 @@ import { type Request, type Response } from "express";
 import {
   register,
   verifyEmail,
+  login,
+  logout,
 } from "../../../src/controllers/auth.controller";
 import * as userService from "../../../src/services/user.service";
 import * as authService from "../../../src/services/auth.service";
@@ -11,6 +13,7 @@ import * as encryptUtils from "../../../src/utils/encryption/encryption";
 import { CustomError } from "src/utils";
 import {
   UserSchema,
+  LoginSchema,
   type User,
   type UserPartialNonStrict,
   type NewUserToDb,
@@ -1122,6 +1125,461 @@ describe("verifyEmail controller", () => {
       getUserFromDbArgs.index
     );
     expect(authService.verifyUserInDb).toHaveBeenCalledWith(req.body.email);
+
+    expect(handleError).toHaveBeenCalledWith(error, res);
+    expect(res.status).not.toHaveBeenCalledWith(200);
+  });
+});
+
+describe("login controller", () => {
+  const req = {} as Request;
+
+  const res = {
+    status: jest.fn().mockReturnThis(),
+    json: jest.fn(),
+    cookie: jest.fn(),
+  } as unknown as Response;
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  const email = "testemail@email.com";
+  const userId = "testuserid";
+  const verified = true;
+  const passwordFromFrontend = "testpasswordfromfe";
+  const passwordFromDB = "testpasswordfromdb";
+
+  const getUserFromDbArgs = {
+    query: `SELECT userId, verified, password FROM users WHERE email = ?`,
+    index: email,
+  };
+
+  it("should return 200 and json {success: true} on successful operation", async () => {
+    req.body = {
+      email,
+      password: passwordFromFrontend,
+    };
+
+    const mockPartialUser: UserPartialNonStrict = {
+      userId,
+      verified,
+      password: passwordFromDB,
+    };
+
+    jest
+      .spyOn(userService, "getUserFromDb")
+      .mockResolvedValue([mockPartialUser]);
+
+    jest.spyOn(encryptUtils, "comparePassword").mockResolvedValue(true);
+
+    jest.spyOn(encryptUtils, "returnTokenizedResponse").mockResolvedValue(res);
+
+    await login(req, res);
+
+    expect(userService.getUserFromDb).toHaveBeenCalledWith(
+      getUserFromDbArgs.query,
+      getUserFromDbArgs.index
+    );
+    expect(encryptUtils.comparePassword).toHaveBeenCalledWith(
+      req.body.password,
+      mockPartialUser.password
+    );
+    expect(encryptUtils.returnTokenizedResponse).toHaveBeenCalledWith(
+      mockPartialUser.userId,
+      res
+    );
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith({ success: true });
+  });
+
+  it("should throw customError to handleError if req.body.email is not a valid email", async () => {
+    req.body = {
+      email: "testemail@email",
+      password: passwordFromFrontend,
+    };
+
+    const customError = new CustomError("Invalid request!", 500);
+
+    const handleError = jest.spyOn(errorUtils, "handleError");
+
+    await login(req, res);
+
+    expect(userService.getUserFromDb).not.toHaveBeenCalled();
+    expect(encryptUtils.comparePassword).not.toHaveBeenCalled();
+    expect(encryptUtils.returnTokenizedResponse).not.toHaveBeenCalled();
+
+    expect(handleError).toHaveBeenCalledWith(customError, res);
+    expect(res.status).not.toHaveBeenCalledWith(200);
+  });
+
+  it("should throw customError to handleError if req.body.password is less than 8 characters", async () => {
+    req.body = {
+      email,
+      password: "testpas",
+    };
+
+    const customError = new CustomError("Invalid request!", 500);
+
+    const handleError = jest.spyOn(errorUtils, "handleError");
+
+    await login(req, res);
+
+    expect(userService.getUserFromDb).not.toHaveBeenCalled();
+    expect(encryptUtils.comparePassword).not.toHaveBeenCalled();
+    expect(encryptUtils.returnTokenizedResponse).not.toHaveBeenCalled();
+
+    expect(handleError).toHaveBeenCalledWith(customError, res);
+    expect(res.status).not.toHaveBeenCalledWith(200);
+  });
+
+  it("should throw customError to handleError if req.body.password is more than 100 characters", async () => {
+    req.body = {
+      email,
+      password:
+        "tencharstrtencharstrtencharstrtencharstrtencharstrtencharstrtencharstrtencharstrtencharstrtencharstra",
+    };
+
+    const customError = new CustomError("Invalid request!", 500);
+
+    const handleError = jest.spyOn(errorUtils, "handleError");
+
+    await login(req, res);
+
+    expect(userService.getUserFromDb).not.toHaveBeenCalled();
+    expect(encryptUtils.comparePassword).not.toHaveBeenCalled();
+    expect(encryptUtils.returnTokenizedResponse).not.toHaveBeenCalled();
+
+    expect(handleError).toHaveBeenCalledWith(customError, res);
+    expect(res.status).not.toHaveBeenCalledWith(200);
+  });
+
+  it("should throw Error to handleError from getUserFromDb service fn if it fails", async () => {
+    req.body = {
+      email,
+      password: passwordFromFrontend,
+    };
+
+    const error = new Error("Error at getUserFromDb service.");
+
+    jest.spyOn(userService, "getUserFromDb").mockRejectedValue(error);
+
+    const handleError = jest.spyOn(errorUtils, "handleError");
+
+    await login(req, res);
+
+    expect(userService.getUserFromDb).toHaveBeenCalledWith(
+      getUserFromDbArgs.query,
+      getUserFromDbArgs.index
+    );
+    expect(encryptUtils.comparePassword).not.toHaveBeenCalled();
+    expect(encryptUtils.returnTokenizedResponse).not.toHaveBeenCalled();
+
+    expect(handleError).toHaveBeenCalledWith(error, res);
+    expect(res.status).not.toHaveBeenCalledWith(200);
+  });
+
+  it("should throw customError to handleError if getUserFromDb service returns empty array ", async () => {
+    req.body = {
+      email,
+      password: passwordFromFrontend,
+    };
+
+    const customError = new CustomError("User/Email not found!", 404);
+
+    jest.spyOn(userService, "getUserFromDb").mockResolvedValue([]);
+
+    const handleError = jest.spyOn(errorUtils, "handleError");
+
+    await login(req, res);
+
+    expect(userService.getUserFromDb).toHaveBeenCalledWith(
+      getUserFromDbArgs.query,
+      getUserFromDbArgs.index
+    );
+    expect(encryptUtils.comparePassword).not.toHaveBeenCalled();
+    expect(encryptUtils.returnTokenizedResponse).not.toHaveBeenCalled();
+
+    expect(handleError).toHaveBeenCalledWith(customError, res);
+    expect(res.status).not.toHaveBeenCalledWith(200);
+  });
+
+  it("should throw customError to handleError if getUserFromDb service returns empty string as user.password", async () => {
+    req.body = {
+      email,
+      password: passwordFromFrontend,
+    };
+
+    const mockPartialUser: UserPartialNonStrict = {
+      userId,
+      verified,
+      password: "",
+    };
+
+    const customError = new CustomError("User/Email not found!", 404);
+
+    jest
+      .spyOn(userService, "getUserFromDb")
+      .mockResolvedValue([mockPartialUser]);
+
+    const handleError = jest.spyOn(errorUtils, "handleError");
+
+    await login(req, res);
+
+    expect(userService.getUserFromDb).toHaveBeenCalledWith(
+      getUserFromDbArgs.query,
+      getUserFromDbArgs.index
+    );
+    expect(encryptUtils.comparePassword).not.toHaveBeenCalled();
+    expect(encryptUtils.returnTokenizedResponse).not.toHaveBeenCalled();
+
+    expect(handleError).toHaveBeenCalledWith(customError, res);
+    expect(res.status).not.toHaveBeenCalledWith(200);
+  });
+
+  it("should throw customError to handleError if getUserFromDb service returns undefined as user.password", async () => {
+    req.body = {
+      email,
+      password: passwordFromFrontend,
+    };
+
+    const mockPartialUser: UserPartialNonStrict = {
+      userId,
+      verified,
+      password: undefined,
+    };
+
+    const customError = new CustomError("User/Email not found!", 404);
+
+    jest
+      .spyOn(userService, "getUserFromDb")
+      .mockResolvedValue([mockPartialUser]);
+
+    const handleError = jest.spyOn(errorUtils, "handleError");
+
+    await login(req, res);
+
+    expect(userService.getUserFromDb).toHaveBeenCalledWith(
+      getUserFromDbArgs.query,
+      getUserFromDbArgs.index
+    );
+    expect(encryptUtils.comparePassword).not.toHaveBeenCalled();
+    expect(encryptUtils.returnTokenizedResponse).not.toHaveBeenCalled();
+
+    expect(handleError).toHaveBeenCalledWith(customError, res);
+    expect(res.status).not.toHaveBeenCalledWith(200);
+  });
+
+  it("should throw customError to handleError if getUserFromDb service returns empty string as user.userId", async () => {
+    req.body = {
+      email,
+      password: passwordFromFrontend,
+    };
+
+    const mockPartialUser: UserPartialNonStrict = {
+      userId: "",
+      verified,
+      password: passwordFromFrontend,
+    };
+
+    const customError = new CustomError("User/Email not found!", 404);
+
+    jest
+      .spyOn(userService, "getUserFromDb")
+      .mockResolvedValue([mockPartialUser]);
+
+    const handleError = jest.spyOn(errorUtils, "handleError");
+
+    await login(req, res);
+
+    expect(userService.getUserFromDb).toHaveBeenCalledWith(
+      getUserFromDbArgs.query,
+      getUserFromDbArgs.index
+    );
+    expect(encryptUtils.comparePassword).not.toHaveBeenCalled();
+    expect(encryptUtils.returnTokenizedResponse).not.toHaveBeenCalled();
+
+    expect(handleError).toHaveBeenCalledWith(customError, res);
+    expect(res.status).not.toHaveBeenCalledWith(200);
+  });
+
+  it("should throw customError to handleError if getUserFromDb service returns undefined as user.userId", async () => {
+    req.body = {
+      email,
+      password: passwordFromFrontend,
+    };
+
+    const mockPartialUser: UserPartialNonStrict = {
+      userId: undefined,
+      verified,
+      password: passwordFromFrontend,
+    };
+
+    const customError = new CustomError("User/Email not found!", 404);
+
+    jest
+      .spyOn(userService, "getUserFromDb")
+      .mockResolvedValue([mockPartialUser]);
+
+    const handleError = jest.spyOn(errorUtils, "handleError");
+
+    await login(req, res);
+
+    expect(userService.getUserFromDb).toHaveBeenCalledWith(
+      getUserFromDbArgs.query,
+      getUserFromDbArgs.index
+    );
+    expect(encryptUtils.comparePassword).not.toHaveBeenCalled();
+    expect(encryptUtils.returnTokenizedResponse).not.toHaveBeenCalled();
+
+    expect(handleError).toHaveBeenCalledWith(customError, res);
+    expect(res.status).not.toHaveBeenCalledWith(200);
+  });
+
+  it("should throw customError to handleError if getUserFromDb service returns undefined as user.userId", async () => {
+    req.body = {
+      email,
+      password: passwordFromFrontend,
+    };
+
+    const mockPartialUser: UserPartialNonStrict = {
+      userId,
+      verified,
+      password: passwordFromFrontend,
+    };
+
+    const customError = new CustomError("User: Invalid Password!", 404);
+
+    jest
+      .spyOn(userService, "getUserFromDb")
+      .mockResolvedValue([mockPartialUser]);
+
+    jest.spyOn(encryptUtils, "comparePassword").mockResolvedValue(false);
+
+    const handleError = jest.spyOn(errorUtils, "handleError");
+
+    await login(req, res);
+
+    expect(userService.getUserFromDb).toHaveBeenCalledWith(
+      getUserFromDbArgs.query,
+      getUserFromDbArgs.index
+    );
+    expect(encryptUtils.comparePassword).toHaveBeenCalledWith(
+      req.body.password,
+      mockPartialUser.password
+    );
+    expect(encryptUtils.returnTokenizedResponse).not.toHaveBeenCalled();
+
+    expect(handleError).toHaveBeenCalledWith(customError, res);
+    expect(res.status).not.toHaveBeenCalledWith(200);
+  });
+
+  it("should throw Error to handleError from returnTokenizedResponse fn if it fails", async () => {
+    req.body = {
+      email,
+      password: passwordFromFrontend,
+    };
+
+    const mockPartialUser: UserPartialNonStrict = {
+      userId,
+      verified,
+      password: passwordFromFrontend,
+    };
+
+    const error = new Error("Error at returnTokenizedResponse fn.");
+
+    jest
+      .spyOn(userService, "getUserFromDb")
+      .mockResolvedValue([mockPartialUser]);
+
+    jest.spyOn(encryptUtils, "comparePassword").mockResolvedValue(true);
+
+    jest
+      .spyOn(encryptUtils, "returnTokenizedResponse")
+      .mockRejectedValue(error);
+
+    const handleError = jest.spyOn(errorUtils, "handleError");
+
+    await login(req, res);
+
+    expect(userService.getUserFromDb).toHaveBeenCalledWith(
+      getUserFromDbArgs.query,
+      getUserFromDbArgs.index
+    );
+    expect(encryptUtils.comparePassword).toHaveBeenCalledWith(
+      req.body.password,
+      mockPartialUser.password
+    );
+    expect(encryptUtils.returnTokenizedResponse).toHaveBeenCalledWith(
+      mockPartialUser.userId,
+      res
+    );
+
+    expect(handleError).toHaveBeenCalledWith(error, res);
+    expect(res.status).not.toHaveBeenCalledWith(200);
+  });
+});
+
+describe("logout controller", () => {
+  const req = {} as Request;
+
+  const res = {
+    status: jest.fn().mockReturnThis(),
+    json: jest.fn(),
+    cookie: jest.fn(),
+  } as unknown as Response;
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  const userId = "testuserid";
+
+  it("should return 200 and json {success: true} on successful operation", async () => {
+    req.body = {
+      user: [
+        {
+          userId,
+        },
+      ],
+    };
+
+    jest.spyOn(encryptUtils, "returnTokenizedResponse").mockResolvedValue(res);
+
+    await logout(req, res);
+    expect(encryptUtils.returnTokenizedResponse).toHaveBeenCalledWith(
+      req.body.user[0].userId,
+      res,
+      "logout"
+    );
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith({ success: true });
+  });
+
+  it("should throw Error to handleError from returnTokenizedResponse fn if it fails", async () => {
+    req.body = {
+      user: [
+        {
+          userId,
+        },
+      ],
+    };
+
+    const error = new Error("Error at returnTokenizedResponse fn.");
+
+    jest
+      .spyOn(encryptUtils, "returnTokenizedResponse")
+      .mockRejectedValue(error);
+
+    const handleError = jest.spyOn(errorUtils, "handleError");
+
+    await logout(req, res);
+
+    expect(encryptUtils.returnTokenizedResponse).toHaveBeenCalledWith(
+      req.body.user[0].userId,
+      res,
+      "logout"
+    );
 
     expect(handleError).toHaveBeenCalledWith(error, res);
     expect(res.status).not.toHaveBeenCalledWith(200);

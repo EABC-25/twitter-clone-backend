@@ -1,6 +1,4 @@
 import { type Request, type Response } from "express";
-import { CookieOptions } from "express";
-import validator from "validator";
 
 import {
   NewUserFromRequestSchema,
@@ -15,7 +13,7 @@ import {
   hashPassword,
   generateVerificationToken,
   generateHashedToken,
-  generateJWToken,
+  returnTokenizedResponse,
 } from "../utils";
 import {
   checkUserInDb,
@@ -168,31 +166,34 @@ export const verifyEmail = async (req: Request, res: Response) => {
 
 export const login = async (req: Request, res: Response) => {
   try {
-    const { email, password } = LoginSchema.parse({
+    const result = LoginSchema.safeParse({
       email: req.body.email,
       password: req.body.password,
     });
 
-    if (!validator.isEmail(email as string)) {
-      throw new CustomError("User: Invalid email!", 401);
+    if (!result.success) {
+      throw new CustomError("Invalid request!", 500);
     }
 
-    const results = await getUserFromDb(
+    const { email, password } = result.data;
+
+    const data = await getUserFromDb(
       `SELECT userId, verified, password FROM users WHERE email = ?`,
       email as string
     );
 
-    if (results.length <= 0 || !results[0].password || !results[0].userId) {
-      throw new CustomError("DB: User/Email not found!", 404);
+    if ((data && data.length <= 0) || !data[0].password || !data[0].userId) {
+      throw new CustomError("User/Email not found!", 404);
     }
 
-    const isMatching = await comparePassword(password, results[0].password);
+    const isMatching = await comparePassword(password, data[0].password);
 
     if (!isMatching) {
       throw new CustomError("User: Invalid Password!", 404);
     }
 
-    sendTokenizedResponse(results[0].userId, 200, res);
+    const resWithCookie = await returnTokenizedResponse(data[0].userId, res);
+    resWithCookie.status(200).json({ success: true });
   } catch (err) {
     handleError(err, res);
   }
@@ -201,50 +202,9 @@ export const login = async (req: Request, res: Response) => {
 export const logout = async (req: Request, res: Response) => {
   try {
     const { userId } = req.body.user[0];
-    sendTokenizedResponse(userId, 200, res, "logout");
+    const resWithCookie = await returnTokenizedResponse(userId, res, "logout");
+    resWithCookie.status(200).json({ success: true });
   } catch (err) {
     handleError(err, res);
-  }
-};
-
-// export const forgotPassword = async (req: Request, res: Response) => {};
-
-// helper functions
-const sendTokenizedResponse = async (
-  userId: string,
-  statusCode: number,
-  res: Response,
-  action?: string
-) => {
-  const production: boolean = process.env.NODE_ENV === "production";
-
-  const options: CookieOptions = {
-    httpOnly: true,
-    expires: new Date(
-      Date.now() +
-        (parseInt(process.env.JWT_COOKIE_EXPIRE as string) || 1) *
-          60 *
-          1000 *
-          60 *
-          24
-    ), // 24 hours or 1 day
-    sameSite: production ? "none" : "strict",
-    secure: production ? true : false,
-  };
-
-  if (production) {
-    options.domain = process.env.DOMAIN_URL;
-  }
-
-  if (action === "logout") {
-    options.expires = new Date(Date.now());
-
-    res.cookie("token", "none", options);
-    res.status(statusCode).json({ success: true });
-  } else {
-    const jwToken = generateJWToken(userId);
-
-    res.cookie("token", jwToken, options);
-    res.status(statusCode).json({ success: true });
   }
 };
